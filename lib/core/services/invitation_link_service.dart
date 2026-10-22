@@ -5,7 +5,7 @@ import 'package:share_plus/share_plus.dart';
 /// across mobile applications (WhatsApp, Facebook, Instagram, etc.).
 class InvitationLinkService {
   /// Default web domain used for invitation landing pages
-  static const String defaultWebBaseUrl = 'https://mujeeb24.app/invite';
+  static const String defaultWebBaseUrl = 'https://mujeeb24.com/accept-invite';
 
   /// Custom URI scheme for direct deep linking into the mobile app
   static const String appScheme = 'mujeeb24://invite';
@@ -39,7 +39,7 @@ class InvitationLinkService {
     final link = buildWebInvitationUrl(token);
     final buffer = StringBuffer();
 
-    buffer.writeln('✨ دعوة للانضمام إلى فريق العمل في منصة مجيب 24 ✨');
+    buffer.writeln('دعوة للانضمام إلى فريق مجيب 24');
     buffer.writeln();
     if (businessName != null && businessName.trim().isNotEmpty) {
       buffer.writeln('تمت دعوتك للانضمام إلى فريق: $businessName');
@@ -54,13 +54,8 @@ class InvitationLinkService {
     buffer.writeln('للبدء وقبول الدعوة، يرجى الضغط على الرابط التالي:');
     buffer.writeln(link);
     buffer.writeln();
-    buffer.writeln('📱 تنبيه هام:');
-    buffer.writeln(
-      '1. إذا كان تطبيق "مجيب 24" مثبتاً على هاتفك، فسيتم نقلك مباشرة إلى صفحة قبول الدعوة.',
-    );
-    buffer.writeln(
-      '2. إذا لم يكن التطبيق مثبتاً لديك، يرجى تحميل تطبيق "مجيب 24" أولاً ثم فتح الرابط أو إدخال رمز الدعوة يدوياً داخل التطبيق.',
-    );
+    buffer.writeln('يمكن قبول الدعوة من صفحة الويب، أو إدخال الرمز في التطبيق.');
+    buffer.writeln('الرابط والرمز مخصصان للمدعو فقط؛ لا تشاركهما علنًا.');
     buffer.writeln();
     buffer.writeln('رمز الدعوة: $token');
 

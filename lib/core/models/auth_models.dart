@@ -187,6 +187,7 @@ class TeamInvitation {
   final String email;
   final String displayName;
   final String accountState; // 'new' or 'existing'
+  final String status; // pending, accepted, revoked, expired
   final String role;
   final List<String> permissions;
   final String? acceptedAt;
@@ -202,6 +203,7 @@ class TeamInvitation {
     required this.email,
     required this.displayName,
     required this.accountState,
+    this.status = 'pending',
     required this.role,
     required this.permissions,
     this.acceptedAt,
@@ -211,6 +213,13 @@ class TeamInvitation {
     required this.expiresAt,
   });
 
+  bool get isPending => status == 'pending';
+  bool get isExpired {
+    final end = DateTime.tryParse(expiresAt);
+    return end == null || !end.isAfter(DateTime.now().toUtc());
+  }
+  bool get canBeAccepted => isPending && !isExpired;
+
   factory TeamInvitation.fromJson(Map<String, dynamic> json) {
     return TeamInvitation(
       id: json['id'] as String? ?? '',
@@ -219,6 +228,7 @@ class TeamInvitation {
       email: json['email'] as String? ?? '',
       displayName: json['display_name'] as String? ?? '',
       accountState: json['account_state'] as String? ?? 'new',
+      status: json['status'] as String? ?? 'pending',
       role: json['role'] as String? ?? 'member',
       permissions:
           (json['permissions'] as List<dynamic>?)
@@ -240,6 +250,7 @@ class TeamInvitation {
     'email': email,
     'display_name': displayName,
     'account_state': accountState,
+    'status': status,
     'role': role,
     'permissions': permissions,
     if (acceptedAt != null) 'accepted_at': acceptedAt,

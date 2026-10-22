@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 /// Service that listens for incoming deep links and extracts invitation tokens.
 /// Supports both custom schemes (e.g. `mujeeb24://invite?token=...`)
-/// and universal/app links (e.g. `https://mujeeb24.app/invite?token=...`).
+/// and universal/app links (e.g. `https://mujeeb24.com/accept-invite?token=...`).
 class DeepLinkService {
   final AppLinks _appLinks;
   StreamSubscription<Uri>? _sub;
@@ -48,6 +48,14 @@ class DeepLinkService {
   /// Extracts invitation token from Uri query parameters or path segments
   static String? extractInvitationToken(Uri uri) {
     // 1. Check query parameter `token`
+    if (uri.scheme != 'mujeeb24' && uri.scheme != 'https') return null;
+    if (uri.scheme == 'https' && uri.host != 'mujeeb24.com') return null;
+    if (uri.scheme == 'mujeeb24' && uri.host != 'invite') return null;
+
+    if (uri.scheme == 'https' &&
+        uri.path != '/accept-invite' && uri.path != '/auth/accept-invite') {
+      return null;
+    }
     final tokenParam = uri.queryParameters['token'];
     if (tokenParam != null && tokenParam.trim().isNotEmpty) {
       return tokenParam.trim();

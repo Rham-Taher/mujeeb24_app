@@ -40,6 +40,8 @@ class AppStrings {
       'demo_fill': 'بيانات تجريبية: admin@alufuq.com',
       'demo_fill_btn': 'تعبئة سريعة',
       'logout': 'تسجيل الخروج',
+      'cancel_action': 'إلغاء',
+      'no_catalog_attributes': 'لم تضف معلومات أو مواصفات بعد',
       'switch_language': 'English',
       'select_business': 'اختر النشاط التجاري',
       'select_business_subtitle':
@@ -65,6 +67,8 @@ class AppStrings {
       'request_failed': 'تعذر إتمام الطلب',
       'success': 'تمت العملية بنجاح',
       'session_expired': 'انتهت الجلسة، يرجى تسجيل الدخول مجددًا',
+      'dashboard_login_required': 'انتهت صلاحية الجلسة. سجّل الدخول مرة أخرى لعرض بيانات نشاطك.',
+      'dashboard_connection_failed': 'تعذر تحديث بيانات النشاط. تحقق من الاتصال وحاول مجددًا.',
       // Phase 2
       'nav_home': 'الرئيسية',
       'nav_inbox': 'المحادثات',
@@ -103,8 +107,7 @@ class AppStrings {
       'filter_by_state': 'تصفية حسب الحالة',
       'filter_by_ownership': 'حالة الإسناد',
       'no_filtered_results': 'لا توجد نتائج مطابقة للفلاتر المحددة',
-      'no_filtered_results_hint':
-          'جرّب تعديل معايير البحث أو مسح الفلاتر لعرض كافة السجلات',
+      'no_filtered_results_hint': 'جرّب تعديل معايير البحث أو مسح الفلاتر لعرض كافة السجلات',
       'reset_all_filters': 'مسح الفلاتر وعرض الكل',
       'filter_count': 'فلاتر نشطة',
       'no_conversations': 'لا توجد محادثات في هذا القسم',
@@ -266,7 +269,8 @@ class AppStrings {
       'add_line': 'إضافة بند',
       'remove_line': 'حذف البند',
       'no_transactions': 'لا توجد معاملات تطابق الفلاتر المحددة',
-      'no_transactions_needing_review': 'لا توجد معاملات تتطلب المراجعة حالياً',
+      'no_transactions_needing_review':
+          'لا توجد معاملات تتطلب المراجعة حالياً',
       'draft_created_success': 'تم إنشاء مسودة المعاملة بنجاح',
       'draft_updated_success': 'تم تحديث مسودة المعاملة بنجاح',
       'review_submitted_success': 'تم إرسال المعاملة للمراجعة بنجاح',
@@ -309,8 +313,7 @@ class AppStrings {
       'availability_status': 'حالة التوفر',
       'fulfillment_mode': 'طريقة التنفيذ والتسليم',
       'requires_confirmation': 'يتطلب تأكيدًا يدويًا',
-      'requires_confirmation_subtitle':
-          'تأكيد الحجز أو الطلب يدويًا قبل الاعتماد',
+      'requires_confirmation_subtitle': 'تأكيد الحجز أو الطلب يدويًا قبل الاعتماد',
       'attributes': 'السمات والخصائص',
       'attribute_key': 'اسم الخاصية (Key)',
       'attribute_value': 'قيمة الخاصية (Value)',
@@ -362,8 +365,7 @@ class AppStrings {
       'channel_disconnect': 'قطع الاتصال',
       'channel_purge_history': 'حذف سجل القناة',
       'purge_history_warning': 'تحذير شديد الخطورة: هذه العملية غير قابلة للتراجع وستؤدي إلى حذف كافة المحادثات والرسائل في القناة نهائيًا!',
-      'purge_confirmation_prompt':
-          'للتأكيد، يرجى كتابة DELETE_ALL_CHANNEL_HISTORY في الحقل أدناه:',
+      'purge_confirmation_prompt': 'للتأكيد، يرجى كتابة DELETE_ALL_CHANNEL_HISTORY في الحقل أدناه:',
       'purge_confirmation_error': 'نص التأكيد غير مطابق بدقة',
       'purge_preview_title': 'معاينة حذف سجل القناة',
       'conversations_to_delete': 'المحادثات المتأثرة',
@@ -430,7 +432,8 @@ class AppStrings {
       'send_invitation': 'إرسال الدعوة',
       'invitation_sent_success': 'تم إنشاء الدعوة بنجاح',
       'invitation_token_modal_title': 'رمز قبول الدعوة',
-      'invitation_token_modal_desc': 'تم إنشاء رمز قبول الدعوة بنجاح. يمكنك نسخه ومشاركته مع العضو الجديد لإكمال انضمامه:',
+      'invitation_token_modal_desc':
+          'تم إنشاء رمز قبول الدعوة بنجاح. يمكنك نسخه ومشاركته مع العضو الجديد لإكمال انضمامه:',
       'copy_token': 'نسخ الرمز',
       'token_copied': 'تم نسخ الرمز إلى الحافظة',
       'role_owner': 'المالك الرئيسي',
@@ -442,7 +445,8 @@ class AppStrings {
       'edit_member_access': 'تعديل الدور والصلاحيات',
       'update_access_success': 'تم تحديث صلاحيات العضو بنجاح',
       'revoke_member': 'إلغاء العضوية',
-      'revoke_member_confirm': 'هل أنت متأكد من رغبتك في إلغاء عضوية هذا المستخدم؟ لن يتمكن من الوصول إلى النشاط التجاري.',
+      'revoke_member_confirm':
+          'هل أنت متأكد من رغبتك في إلغاء عضوية هذا المستخدم؟ لن يتمكن من الوصول إلى النشاط التجاري.',
       'cannot_revoke_owner':
           'لا يمكن إلغاء عضوية المالك الرئيسي وفقًا لقواعد العقد',
       'member_revoked_success': 'تم إلغاء العضوية بنجاح',
@@ -451,7 +455,8 @@ class AppStrings {
           'سيتم إبطال الرمز القديم وتوليد رمز قبول جديد لهذه الدعوة.',
       'invitation_resent_success': 'تم تجديد الدعوة وتوليد رمز قبول جديد',
       'revoke_invitation': 'إلغاء الدعوة',
-      'revoke_invitation_confirm': 'هل أنت متأكد من رغبتك في إلغاء هذه الدعوة؟ لن يتمكن المستلم من استخدام رمز القبول.',
+      'revoke_invitation_confirm':
+          'هل أنت متأكد من رغبتك في إلغاء هذه الدعوة؟ لن يتمكن المستلم من استخدام رمز القبول.',
       'invitation_revoked_success': 'تم إلغاء الدعوة بنجاح',
       'status_revoked': 'ملغى',
       'status_accepted': 'مقبول',
@@ -476,9 +481,11 @@ class AppStrings {
       'no_audit_events': 'لا توجد أحداث تدقيق مسجلة',
       'close': 'إغلاق',
       'platform_title': 'إدارة المنصة المركزية',
-      'platform_subtitle': 'لوحة التحكم المركزية للأنشطة والقنوات والذكاء الاصطناعي والخطط والدعم',
+      'platform_subtitle':
+          'لوحة التحكم المركزية للأنشطة والقنوات والذكاء الاصطناعي والخطط والدعم',
       'access_denied_platform_title': 'غير مصرح بالدخول',
-      'access_denied_platform_desc': 'هذه المساحة مخصصة لمسؤولي منصة مجيب 24 فقط وفقًا لرد المصادقة وصلاحيات الخادم.',
+      'access_denied_platform_desc':
+          'هذه المساحة مخصصة لمسؤولي منصة مجيب 24 فقط وفقًا لرد المصادقة وصلاحيات الخادم.',
       'back_to_workspace': 'العودة لمساحة العمل',
       'tab_platform_businesses': 'الأعمال التجارية',
       'tab_platform_channels': 'القنوات والمزودون',
@@ -496,8 +503,10 @@ class AppStrings {
       'owner_email_label': 'بريد المالك',
       'owner_name_label': 'اسم المالك',
       'ai_kill_switch': 'قاطع الطوارئ (Emergency Kill Switch)',
-      'ai_kill_switch_desc': 'يقوم بإيقاف تشغيل محرك الذكاء الاصطناعي فورًا عبر كافة الأنشطة والقنوات لمنع أي ردود غير مرغوبة.',
-      'disable_ai_confirm': 'تحذير أمني: هل أنت متأكد من رغبتك في إيقاف الذكاء الاصطناعي بالكامل؟',
+      'ai_kill_switch_desc':
+          'يقوم بإيقاف تشغيل محرك الذكاء الاصطناعي فورًا عبر كافة الأنشطة والقنوات لمنع أي ردود غير مرغوبة.',
+      'disable_ai_confirm':
+          'تحذير أمني: هل أنت متأكد من رغبتك في إيقاف الذكاء الاصطناعي بالكامل؟',
       'enable_ai': 'إعادة تفعيل الذكاء الاصطناعي',
       'run_ai_health_check': 'فحص سلامة الذكاء الاصطناعي',
       'ai_runtime_status': 'حالة المحرك',
@@ -540,6 +549,10 @@ class AppStrings {
       'demo_fill': 'Demo credentials: admin@alufuq.com',
       'demo_fill_btn': 'Quick fill',
       'logout': 'Sign Out',
+      'cancel_action': 'Cancel',
+      'no_catalog_attributes': 'No specifications added yet',
+      'dashboard_login_required': 'Your session expired. Sign in to view business data.',
+      'dashboard_connection_failed': 'Unable to refresh business data. Check your connection and retry.',
       'switch_language': 'العربية',
       'select_business': 'Select Business',
       'select_business_subtitle': 'You have access to multiple businesses, please select your workspace',
@@ -811,8 +824,7 @@ class AppStrings {
       'availability_status': 'Availability Status',
       'fulfillment_mode': 'Fulfillment Mode',
       'requires_confirmation': 'Requires Manual Confirmation',
-      'requires_confirmation_subtitle':
-          'Confirm booking/order manually before completion',
+      'requires_confirmation_subtitle': 'Confirm booking/order manually before completion',
       'attributes': 'Attributes & Properties',
       'attribute_key': 'Attribute Key',
       'attribute_value': 'Attribute Value',
@@ -853,8 +865,7 @@ class AppStrings {
       'search_items': 'Search catalog items...',
       // Phase 6 - Channels, Automation & AI
       'channels_title': 'Channel Connections',
-      'channels_subtitle':
-          'Manage channel connections like WhatsApp, Instagram, and Telegram',
+      'channels_subtitle': 'Manage channel connections like WhatsApp, Instagram, and Telegram',
       'connect_channel': 'Connect New Channel',
       'channel_provider': 'Provider',
       'channel_type': 'Channel Type',
@@ -865,8 +876,7 @@ class AppStrings {
       'channel_disconnect': 'Disconnect Channel',
       'channel_purge_history': 'Purge Channel History',
       'purge_history_warning': 'High-risk warning: This action is irreversible and will permanently delete all conversations and messages in this channel!',
-      'purge_confirmation_prompt':
-          'To confirm, type DELETE_ALL_CHANNEL_HISTORY in the field below:',
+      'purge_confirmation_prompt': 'To confirm, type DELETE_ALL_CHANNEL_HISTORY in the field below:',
       'purge_confirmation_error': 'Confirmation text does not match accurately',
       'purge_preview_title': 'Channel History Purge Preview',
       'conversations_to_delete': 'Affected Conversations',
@@ -878,8 +888,7 @@ class AppStrings {
       'open_authorization_url': 'Open External Authorization URL',
       'no_channels': 'No channel connections registered',
       'automation_rules_title': 'Automation Rules',
-      'automation_rules_subtitle':
-          'Automate labeling and assigning conversations based on rules',
+      'automation_rules_subtitle': 'Automate labeling and assigning conversations based on rules',
       'create_rule': 'Create Automation Rule',
       'edit_rule': 'Edit Automation Rule',
       'rule_name': 'Rule Name',
@@ -895,8 +904,7 @@ class AppStrings {
       'rule_updated_success': 'Automation rule updated successfully',
       'no_automation_rules': 'No automation rules registered',
       'ai_decisions_title': 'AI Decisions & Review',
-      'ai_decisions_subtitle':
-          'Track AI decisions and escalate to human review',
+      'ai_decisions_subtitle': 'Track AI decisions and escalate to human review',
       'ai_decision_detail': 'AI Decision Details',
       'intent': 'Extracted Intent',
       'entities': 'Extracted Entities',
@@ -909,8 +917,7 @@ class AppStrings {
       'human_review_requested_success': 'Human review requested successfully',
       'no_ai_decisions': 'No AI decisions found',
       'canned_replies_title': 'Canned Replies',
-      'canned_replies_subtitle':
-          'Manage quick reusable replies for conversations',
+      'canned_replies_subtitle': 'Manage quick reusable replies for conversations',
       'create_canned_reply': 'Create Canned Reply',
       'edit_canned_reply': 'Edit Canned Reply',
       'reply_shortcut': 'Shortcut',
@@ -938,7 +945,8 @@ class AppStrings {
       'send_invitation': 'Send Invitation',
       'invitation_sent_success': 'Team invitation created successfully',
       'invitation_token_modal_title': 'Invitation Acceptance Token',
-      'invitation_token_modal_desc': 'The invitation token has been generated. Copy and share it with the invitee to join:',
+      'invitation_token_modal_desc':
+          'The invitation token has been generated. Copy and share it with the invitee to join:',
       'copy_token': 'Copy Token',
       'token_copied': 'Token copied to clipboard',
       'role_owner': 'Owner',
@@ -950,12 +958,14 @@ class AppStrings {
       'edit_member_access': 'Edit Role & Access',
       'update_access_success': 'Member access updated successfully',
       'revoke_member': 'Revoke Membership',
-      'revoke_member_confirm': 'Are you sure you want to revoke this user membership? They will lose access immediately.',
+      'revoke_member_confirm':
+          'Are you sure you want to revoke this user membership? They will lose access immediately.',
       'cannot_revoke_owner':
           'Active business owner cannot be revoked per contract rules',
       'member_revoked_success': 'Membership revoked successfully',
       'resend_invitation': 'Resend Invitation',
-      'resend_invitation_confirm': 'The previous token will be invalidated and a new acceptance token will be issued.',
+      'resend_invitation_confirm':
+          'The previous token will be invalidated and a new acceptance token will be issued.',
       'invitation_resent_success':
           'Invitation renewed with new acceptance token',
       'revoke_invitation': 'Revoke Invitation',
@@ -985,9 +995,11 @@ class AppStrings {
       'no_audit_events': 'No audit events found',
       'close': 'Close',
       'platform_title': 'Platform Administration',
-      'platform_subtitle': 'Central control plane for businesses, channels, AI, plans and support',
+      'platform_subtitle':
+          'Central control plane for businesses, channels, AI, plans and support',
       'access_denied_platform_title': 'Access Denied',
-      'access_denied_platform_desc': 'This section is restricted to Mujeeb 24 platform administrators only per authentication and server authorization.',
+      'access_denied_platform_desc':
+          'This section is restricted to Mujeeb 24 platform administrators only per authentication and server authorization.',
       'back_to_workspace': 'Back to Workspace',
       'tab_platform_businesses': 'Businesses',
       'tab_platform_channels': 'Channels & Providers',
@@ -1005,8 +1017,10 @@ class AppStrings {
       'owner_email_label': 'Owner Email',
       'owner_name_label': 'Owner Name',
       'ai_kill_switch': 'Emergency Kill Switch',
-      'ai_kill_switch_desc': 'Immediately shuts down the AI runtime across all businesses and channels to prevent unwanted replies.',
-      'disable_ai_confirm': 'Security Warning: Are you sure you want to completely disable the AI runtime?',
+      'ai_kill_switch_desc':
+          'Immediately shuts down the AI runtime across all businesses and channels to prevent unwanted replies.',
+      'disable_ai_confirm':
+          'Security Warning: Are you sure you want to completely disable the AI runtime?',
       'enable_ai': 'Re-enable AI Runtime',
       'run_ai_health_check': 'Run AI Health Check',
       'ai_runtime_status': 'Runtime Status',

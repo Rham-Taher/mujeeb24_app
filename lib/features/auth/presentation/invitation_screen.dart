@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:mujeeb24_app/core/team/team_invitation_presentation.dart';
 import 'package:mujeeb24_app/app/localization/app_localizations.dart';
 import 'package:mujeeb24_app/app/theme/app_theme.dart';
 import 'package:mujeeb24_app/core/models/auth_models.dart';
@@ -29,6 +31,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
   TeamInvitation? _inspectedInvitation;
   bool _isInspecting = false;
   bool _isAccepting = false;
+  bool _obscurePassword = true;
   String? _localError;
   String? _successMessage;
 
@@ -65,6 +68,11 @@ class _InvitationScreenState extends State<InvitationScreen> {
     });
 
     final inv = await widget.authProvider.inspectInvitation(token);
+    if (!mounted) return;
+    if (_tokenController.text.trim() != token) {
+      setState(() => _isInspecting = false);
+      return;
+    }
     setState(() {
       _isInspecting = false;
       _inspectedInvitation = inv;
@@ -75,8 +83,14 @@ class _InvitationScreenState extends State<InvitationScreen> {
   }
 
   Future<void> _acceptInvitation() async {
-    if (_inspectedInvitation == null) return;
+    final invitation = _inspectedInvitation;
+    if (invitation == null || _isAccepting) return;
     final token = _tokenController.text.trim();
+    if (!invitation.canBeAccepted) {
+      setState(() => _localError =
+        'هذه الدعوة ليست صالحة للقبول الآن. اطلب من صاحب النشاط تجديدها.');
+      return;
+    }
 
     setState(() {
       _isAccepting = true;
@@ -85,14 +99,15 @@ class _InvitationScreenState extends State<InvitationScreen> {
     });
 
     bool ok = false;
-    if (_inspectedInvitation!.accountState == 'new') {
+    if (invitation.accountState == 'new') {
       final name = _displayNameController.text.trim();
       final pass = _passwordController.text;
-      if (name.isEmpty || pass.length < 12) {
+      final passwordBytes = utf8.encode(pass).length;
+      if (name.isEmpty || passwordBytes < 12 || passwordBytes > 72) {
         setState(() {
           _isAccepting = false;
           _localError =
-              'كلمة المرور يجب أن تكون 12 حرفًا على الأقل والاسم مطلوب';
+              'أدخل الاسم وكلمة مرور تتراوح بين 12 و72 بايتًا.';
         });
         return;
       }
@@ -106,11 +121,26 @@ class _InvitationScreenState extends State<InvitationScreen> {
       ok = await widget.authProvider.acceptTeamInvitation(token: token);
     }
 
+    if (!mounted) return;
+    if (!ok) {
+      // On a stale invitation/seat race, re-inspect to reveal latest state.
+      // Preserve the actionable failure even though inspect clears provider errors.
+      final acceptanceError = widget.authProvider.errorMessage;
+      final current = await widget.authProvider.inspectInvitation(token);
+      if (!mounted) return;
+      setState(() {
+        _inspectedInvitation = current;
+        _localError = acceptanceError ??
+            'تعذر قبول الدعوة حاليًا. تواصل مع صاحب النشاط.';
+        _isAccepting = false;
+      });
+      return;
+    }
+    _passwordController.clear();
     setState(() {
       _isAccepting = false;
-      if (ok) {
-        _successMessage = 'تم قبول الدعوة بنجاح! يمكنك الآن تسجيل الدخول.';
-      }
+      _inspectedInvitation = null;
+      _successMessage = 'تم قبول الدعوة بنجاح! يمكنك الآن تسجيل الدخول.';
     });
   }
 
@@ -145,6 +175,12 @@ class _InvitationScreenState extends State<InvitationScreen> {
               // Token Field
               TextFormField(
                 controller: _tokenController,
+                enabled: !_isInspecting && !_isAccepting,
+                onChanged: (_) => setState(() {
+                  _inspectedInvitation = null;
+                  _localError = null;
+                  _successMessage = null;
+                }),
                 decoration: InputDecoration(
                   labelText: strings('acceptance_token'),
                   hintText: 'inv_...',
@@ -154,7 +190,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
               const SizedBox(height: 12),
 
               ElevatedButton(
-                onPressed: _isInspecting ? null : _inspectToken,
+                onPressed: _isInspecting || _isAccepting ? null : _inspectToken,
                 child: _isInspecting
                     ? const SizedBox(
                         width: 20,
@@ -236,14 +272,18 @@ class _InvitationScreenState extends State<InvitationScreen> {
                           strings('invited_email'),
                           _inspectedInvitation!.email,
                         ),
-                        _buildRow(strings('role'), _inspectedInvitation!.role),
+                        _buildRow(strings('role'),
+                          teamRoleArabicLabel(_inspectedInvitation!.role)),
+                        _buildRow('حالة الدعوة',
+                          teamInvitationArabicStatus(_inspectedInvitation!.status)),
                         _buildRow(
                           'حالة الحساب',
-                          _inspectedInvitation!.accountState,
+                          teamAccountArabicLabel(_inspectedInvitation!.accountState),
                         ),
                         _buildRow(
                           strings('expires_at'),
-                          _inspectedInvitation!.expiresAt,
+                          formatTeamInvitationDate(context,
+                            _inspectedInvitation!.expiresAt),
                         ),
                       ],
                     ),
@@ -252,7 +292,14 @@ class _InvitationScreenState extends State<InvitationScreen> {
                 const SizedBox(height: 16),
 
                 // Form for New Account or Button for Existing Account
-                if (_inspectedInvitation!.accountState == 'new') ...[
+                if (!_inspectedInvitation!.canBeAccepted) ...[
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(14),
+                      child: Text('هذه الدعوة غير قابلة للقبول حاليًا. تواصل مع صاحب النشاط لطلب دعوة جديدة.'),
+                    ),
+                  ),
+                ] else if (_inspectedInvitation!.accountState == 'new') ...[
                   TextFormField(
                     controller: _displayNameController,
                     decoration: InputDecoration(
@@ -263,10 +310,18 @@ class _InvitationScreenState extends State<InvitationScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: strings('new_password'),
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      helperText: '12–72 بايتًا؛ استخدم كلمة مرور قوية',
+                      suffixIcon: IconButton(
+                        tooltip: _obscurePassword ? 'إظهار كلمة المرور' : 'إخفاء كلمة المرور',
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword),
+                        icon: Icon(_obscurePassword
+                          ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -277,8 +332,17 @@ class _InvitationScreenState extends State<InvitationScreen> {
                         : Text(strings('accept_and_create')),
                   ),
                 ] else ...[
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Text('لديك حساب بالفعل. سجّل الدخول بالحساب المرتبط بالبريد المدعو قبل قبول الدعوة.'),
+                  ),
+                  TextButton(
+                    onPressed: widget.onBackToLogin,
+                    child: const Text('الذهاب إلى تسجيل الدخول'),
+                  ),
                   ElevatedButton(
-                    onPressed: _isAccepting ? null : _acceptInvitation,
+                    onPressed: !_isAccepting && auth.isAuthenticated
+                      ? _acceptInvitation : null,
                     child: _isAccepting
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(strings('accept_existing')),
@@ -298,13 +362,18 @@ class _InvitationScreenState extends State<InvitationScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+          Flexible(
+            flex: 2,
+            child: Text(label,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
           ),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 3,
+            child: Text(value,
+              textAlign: TextAlign.end,
+              softWrap: true,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         ],
       ),

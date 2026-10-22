@@ -50,7 +50,9 @@ class CatalogRepository {
     String? cursor,
     int limit = 25,
   }) async {
-    final queryParams = <String, dynamic>{'limit': limit.toString()};
+    final queryParams = <String, dynamic>{
+      'limit': limit.toString(),
+    };
     if (status != null && status.isNotEmpty && status != 'all') {
       queryParams['status'] = status;
     }
@@ -74,12 +76,8 @@ class CatalogRepository {
 
     final pagination = response is Map ? response['pagination'] : null;
     final hasMore = pagination is Map && pagination['has_more'] == true;
-    final nextCursor = pagination is Map
-        ? pagination['next_cursor']?.toString()
-        : null;
-    final requestId = response is Map
-        ? response['request_id']?.toString()
-        : null;
+    final nextCursor = pagination is Map ? pagination['next_cursor']?.toString() : null;
+    final requestId = response is Map ? response['request_id']?.toString() : null;
 
     return CatalogPage(
       items: items,
@@ -181,7 +179,9 @@ class CatalogRepository {
     String? cursor,
     int limit = 25,
   }) async {
-    final queryParams = <String, dynamic>{'limit': limit.toString()};
+    final queryParams = <String, dynamic>{
+      'limit': limit.toString(),
+    };
     if (status != null && status.isNotEmpty && status != 'all') {
       queryParams['status'] = status;
     }
@@ -208,12 +208,8 @@ class CatalogRepository {
 
     final pagination = response is Map ? response['pagination'] : null;
     final hasMore = pagination is Map && pagination['has_more'] == true;
-    final nextCursor = pagination is Map
-        ? pagination['next_cursor']?.toString()
-        : null;
-    final requestId = response is Map
-        ? response['request_id']?.toString()
-        : null;
+    final nextCursor = pagination is Map ? pagination['next_cursor']?.toString() : null;
+    final requestId = response is Map ? response['request_id']?.toString() : null;
 
     return CatalogItemPage(
       items: items,
@@ -296,7 +292,9 @@ class CatalogRepository {
     String? cursor,
     int limit = 50,
   }) async {
-    final queryParams = <String, dynamic>{'limit': limit.toString()};
+    final queryParams = <String, dynamic>{
+      'limit': limit.toString(),
+    };
     if (status != null && status.isNotEmpty && status != 'all') {
       queryParams['status'] = status;
     }
@@ -320,12 +318,8 @@ class CatalogRepository {
 
     final pagination = response is Map ? response['pagination'] : null;
     final hasMore = pagination is Map && pagination['has_more'] == true;
-    final nextCursor = pagination is Map
-        ? pagination['next_cursor']?.toString()
-        : null;
-    final requestId = response is Map
-        ? response['request_id']?.toString()
-        : null;
+    final nextCursor = pagination is Map ? pagination['next_cursor']?.toString() : null;
+    final requestId = response is Map ? response['request_id']?.toString() : null;
 
     return VariantPage(
       items: items,
@@ -393,7 +387,9 @@ class CatalogRepository {
     String? cursor,
     int limit = 50,
   }) async {
-    final queryParams = <String, dynamic>{'limit': limit.toString()};
+    final queryParams = <String, dynamic>{
+      'limit': limit.toString(),
+    };
     if (status != null && status.isNotEmpty && status != 'all') {
       queryParams['status'] = status;
     }
@@ -417,12 +413,8 @@ class CatalogRepository {
 
     final pagination = response is Map ? response['pagination'] : null;
     final hasMore = pagination is Map && pagination['has_more'] == true;
-    final nextCursor = pagination is Map
-        ? pagination['next_cursor']?.toString()
-        : null;
-    final requestId = response is Map
-        ? response['request_id']?.toString()
-        : null;
+    final nextCursor = pagination is Map ? pagination['next_cursor']?.toString() : null;
+    final requestId = response is Map ? response['request_id']?.toString() : null;
 
     return OfferPage(
       items: items,
@@ -488,24 +480,57 @@ class CatalogRepository {
     String? name,
     int? version,
   }) async {
-    final queryParams = <String, dynamic>{};
-    if (name != null && name.isNotEmpty) queryParams['name'] = name;
-    if (version != null) queryParams['version'] = version.toString();
-
-    final response = await apiClient.get(
-      '/businesses/$businessId/attribute-schemas',
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
-    );
-
-    final List<AttributeSchema> items = [];
-    for (final item in _extractDataList(response)) {
-      if (item is Map<String, dynamic>) {
-        items.add(AttributeSchema.fromJson(item));
-      } else if (item is Map) {
-        items.add(AttributeSchema.fromJson(Map<String, dynamic>.from(item)));
+    // List endpoints return cursor pages. Do not silently hide later templates.
+    final collected = <AttributeSchema>[];
+    final seenIds = <String>{};
+    final seenCursors = <String>{};
+    String? cursor;
+    var pages = 0;
+    while (true) {
+      if (pages++ >= 200) {
+        throw StateError('Schema pagination safety limit reached');
       }
+      final queryParams = <String, dynamic>{'limit': '50'};
+      if (name != null && name.isNotEmpty) queryParams['name'] = name;
+      if (version != null) queryParams['version'] = version.toString();
+      if (cursor != null) queryParams['cursor'] = cursor;
+
+      final response = await apiClient.get(
+        '/businesses/$businessId/attribute-schemas',
+        queryParameters: queryParams,
+      );
+      for (final item in _extractDataList(response)) {
+        if (item is! Map) continue;
+        final schema = AttributeSchema.fromJson(Map<String, dynamic>.from(item));
+        if (seenIds.add(schema.id)) collected.add(schema);
+      }
+      final pagination = response['pagination'];
+      final hasMore = pagination is Map && pagination['has_more'] == true;
+      if (!hasMore) return collected;
+      final nextCursor = pagination['next_cursor']?.toString();
+      if (nextCursor == null || nextCursor.isEmpty ||
+          !seenCursors.add(nextCursor)) {
+        throw StateError('Invalid catalog schema pagination cursor');
+      }
+      cursor = nextCursor;
     }
-    return items;
+  }
+
+  /// Creates a reusable named schema. The backend generates its attribute keys.
+  Future<AttributeSchema> createAttributeSchema({
+    required String businessId,
+    required CreateAttributeSchemaRequest request,
+    String? idempotencyKey,
+  }) async {
+    final response = await apiClient.post(
+      '/businesses/$businessId/attribute-schemas',
+      body: request.toJson(),
+      headers: {
+        'Idempotency-Key': idempotencyKey ?? _generateIdempotencyKey('schema'),
+      },
+      requiresAuth: true,
+    );
+    return AttributeSchema.fromJson(_extractDataMap(response));
   }
 
   /// Retrieves an attribute schema by ID.

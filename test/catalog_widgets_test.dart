@@ -22,6 +22,10 @@ class FakeCatalogRepository extends CatalogRepository {
   List<Offer> mockOffers;
   List<AttributeSchema> mockSchemas;
   CatalogEntityContract? mockContract;
+  bool failEntityContract;
+  bool failVariants;
+  bool failOffers;
+  CreateCatalogItemRequest? lastCreateItemRequest;
 
   bool listCatalogsCalled = false;
   bool createCatalogCalled = false;
@@ -43,6 +47,9 @@ class FakeCatalogRepository extends CatalogRepository {
     this.mockOffers = const [],
     this.mockSchemas = const [],
     this.mockContract,
+    this.failEntityContract = false,
+    this.failVariants = false,
+    this.failOffers = false,
   }) : super(apiClient: ApiClient(baseUrl: 'https://mock.local'));
 
   @override
@@ -110,9 +117,8 @@ class FakeCatalogRepository extends CatalogRepository {
   }
 
   @override
-  Future<CatalogEntityContract> getCatalogEntityContract({
-    required String businessId,
-  }) async {
+  Future<CatalogEntityContract> getCatalogEntityContract({required String businessId}) async {
+    if (failEntityContract) throw StateError('entity-contract unavailable');
     return mockContract ?? CatalogEntityContract.defaults();
   }
 
@@ -144,6 +150,7 @@ class FakeCatalogRepository extends CatalogRepository {
     String? idempotencyKey,
   }) async {
     createItemCalled = true;
+    lastCreateItemRequest = request;
     final newItem = CatalogItem(
       id: 'item_new_${DateTime.now().millisecondsSinceEpoch}',
       businessId: businessId,
@@ -196,8 +203,7 @@ class FakeCatalogRepository extends CatalogRepository {
       pricingMode: request.pricingMode ?? current.pricingMode,
       availabilityMode: request.availabilityMode ?? current.availabilityMode,
       fulfillmentMode: request.fulfillmentMode ?? current.fulfillmentMode,
-      requiresConfirmation:
-          request.requiresConfirmation ?? current.requiresConfirmation,
+      requiresConfirmation: request.requiresConfirmation ?? current.requiresConfirmation,
       attributes: request.attributes ?? current.attributes,
       resourceVersion: '${(int.tryParse(current.resourceVersion) ?? 1) + 1}',
     );
@@ -214,6 +220,7 @@ class FakeCatalogRepository extends CatalogRepository {
     int limit = 25,
   }) async {
     listVariantsCalled = true;
+    if (failVariants) throw StateError('variant list unavailable');
     return VariantPage(items: mockVariants, hasMore: false);
   }
 
@@ -270,6 +277,7 @@ class FakeCatalogRepository extends CatalogRepository {
     int limit = 25,
   }) async {
     listOffersCalled = true;
+    if (failOffers) throw StateError('offer list unavailable');
     return OfferPage(items: mockOffers, hasMore: false);
   }
 
@@ -322,8 +330,7 @@ class FakeCatalogRepository extends CatalogRepository {
       priceVerificationStatus: current.priceVerificationStatus,
       availabilityMode: current.availabilityMode,
       fulfillmentMode: current.fulfillmentMode,
-      availabilityStatus:
-          request.availabilityStatus ?? current.availabilityStatus,
+      availabilityStatus: request.availabilityStatus ?? current.availabilityStatus,
       status: request.status ?? current.status,
       resourceVersion: '${(int.tryParse(current.resourceVersion) ?? 1) + 1}',
     );
@@ -438,17 +445,13 @@ void main() {
   );
 
   group('Phase 5 CatalogsScreen Widget Tests', () {
-    testWidgets('Renders catalogs list, filters, and cards correctly', (
-      tester,
-    ) async {
+    testWidgets('Renders catalogs list, filters, and cards correctly', (tester) async {
       final fakeRepo = FakeCatalogRepository(mockCatalogs: [sampleCatalog]);
       final provider = CatalogProvider(catalogRepository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestApp(
-          CatalogsScreen(catalogProvider: provider, businessId: testBusinessId),
-        ),
-      );
+      await tester.pumpWidget(createTestApp(
+        CatalogsScreen(catalogProvider: provider, businessId: testBusinessId),
+      ));
       await tester.pumpAndSettle();
 
       expect(find.text('كتالوج الصيف'), findsOneWidget);
@@ -458,17 +461,13 @@ void main() {
       expect(fakeRepo.listCatalogsCalled, isTrue);
     });
 
-    testWidgets('Opens create catalog dialog and creates a new catalog', (
-      tester,
-    ) async {
+    testWidgets('Opens create catalog dialog and creates a new catalog', (tester) async {
       final fakeRepo = FakeCatalogRepository(mockCatalogs: []);
       final provider = CatalogProvider(catalogRepository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestApp(
-          CatalogsScreen(catalogProvider: provider, businessId: testBusinessId),
-        ),
-      );
+      await tester.pumpWidget(createTestApp(
+        CatalogsScreen(catalogProvider: provider, businessId: testBusinessId),
+      ));
       await tester.pumpAndSettle();
 
       // Tap on create button
@@ -500,24 +499,20 @@ void main() {
   });
 
   group('Phase 5 CatalogItemsScreen Widget Tests', () {
-    testWidgets('Renders items list, chips, and allows search filtering', (
-      tester,
-    ) async {
+    testWidgets('Renders items list, chips, and allows search filtering', (tester) async {
       final fakeRepo = FakeCatalogRepository(
         mockCatalogs: [sampleCatalog],
         mockItems: [sampleItem],
       );
       final provider = CatalogProvider(catalogRepository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestApp(
-          CatalogItemsScreen(
-            catalogProvider: provider,
-            businessId: testBusinessId,
-            catalog: sampleCatalog,
-          ),
+      await tester.pumpWidget(createTestApp(
+        CatalogItemsScreen(
+          catalogProvider: provider,
+          businessId: testBusinessId,
+          catalog: sampleCatalog,
         ),
-      );
+      ));
       await tester.pumpAndSettle();
 
       expect(find.text('قميص صيفي قطني'), findsOneWidget);
@@ -528,45 +523,36 @@ void main() {
 
   group('Phase 5 CatalogItemFormScreen Widget Tests', () {
     testWidgets('Renders item creation form with validation', (tester) async {
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
       final fakeRepo = FakeCatalogRepository(
         mockCatalogs: [sampleCatalog],
         mockItems: [],
       );
       final provider = CatalogProvider(catalogRepository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestApp(
-          CatalogItemFormScreen(
-            catalogProvider: provider,
-            businessId: testBusinessId,
-            catalogId: testCatalogId,
-          ),
+      await tester.pumpWidget(createTestApp(
+        CatalogItemFormScreen(
+          catalogProvider: provider,
+          businessId: testBusinessId,
+          catalogId: testCatalogId,
         ),
-      );
+      ));
       await tester.pumpAndSettle();
 
       expect(find.text('إضافة عنصر / منتج'), findsOneWidget);
 
-      // Scroll to submit button
-      final submitBtn = find.widgetWithText(
-        ElevatedButton,
-        'إضافة عنصر / منتج',
-      );
-      await tester.dragUntilVisible(
-        submitBtn,
-        find.byType(ListView),
-        const Offset(0, -300),
-      );
+      // Guided creation: no write until all three stages finish.
+      final nextButton = find.widgetWithText(FilledButton, 'متابعة');
+      // The merchant's next action stays pinned above the system navigation bar.
+      await tester.tap(nextButton);
       await tester.pumpAndSettle();
-
-      expect(submitBtn, findsOneWidget);
-      await tester.tap(submitBtn);
-      await tester.pumpAndSettle();
-
-      // Name is required, so repository should NOT be called
       expect(fakeRepo.createItemCalled, isFalse);
 
-      // Scroll back up to name and type fields
       final nameField = find.widgetWithText(TextFormField, 'اسم البند *');
       await tester.dragUntilVisible(
         nameField,
@@ -575,28 +561,138 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.enterText(nameField, 'ساعة فاخرة');
+      // The default choice is the human-readable 'منتج' -> API 'product'.
+      expect(find.text('ما الذي تقدمه؟'), findsWidgets);
 
-      final typeField = find.widgetWithText(TextFormField, 'نوع العنصر *');
-      await tester.enterText(typeField, 'physical_good');
+      await tester.tap(nextButton);
+      await tester.pumpAndSettle();
 
-      // Scroll down to submit button and tap
+      // Item-only draft is a supported option; no invented price or availability.
+      final skipOffer = find.text('حفظ السعر والتوفر الآن');
       await tester.dragUntilVisible(
-        submitBtn,
+        skipOffer,
         find.byType(ListView),
         const Offset(0, -300),
       );
       await tester.pumpAndSettle();
-      await tester.tap(submitBtn);
+      await tester.tap(skipOffer);
+      await tester.pumpAndSettle();
+      await tester.tap(nextButton);
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.createItemCalled, isFalse);
+      final saveButton = find.widgetWithText(FilledButton, 'حفظ المنتج');
+      await tester.tap(saveButton);
       await tester.pumpAndSettle();
 
       expect(fakeRepo.createItemCalled, isTrue);
     });
   });
 
+  group('Independent product, variant and offer loading', () {
+    test('product details remain accessible if variant/offer endpoints fail', () async {
+      final repo = FakeCatalogRepository(
+        mockItems: [sampleItem],
+        failVariants: true,
+        failOffers: true,
+      );
+      final provider = CatalogProvider(catalogRepository: repo);
+      await provider.fetchItemDetail(testBusinessId, testCatalogId, testItemId);
+      expect(provider.selectedItem?.id, testItemId);
+      expect(provider.itemDetailError, isNull);
+      expect(provider.variantsError, contains('متغيرات'));
+      expect(provider.offersError, contains('أسعار'));
+      expect(provider.variants, isEmpty);
+      expect(provider.offers, isEmpty);
+
+      repo.failVariants = false;
+      repo.failOffers = false;
+      repo.mockVariants = [sampleVariant];
+      await provider.refreshVariants(testBusinessId, testItemId);
+      await provider.refreshOffers(testBusinessId, testItemId);
+      expect(provider.selectedItem?.id, testItemId);
+      expect(provider.variantsError, isNull);
+      expect(provider.offersError, isNull);
+      expect(provider.variants.length, 1);
+    });
+  });
+
+  group('Catalog draft when pricing contract is unavailable', () {
+    testWidgets('merchant can save without price and add variants afterward',
+        (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final repo = FakeCatalogRepository(
+        mockCatalogs: [sampleCatalog],
+        failEntityContract: true,
+      );
+      final provider = CatalogProvider(catalogRepository: repo);
+      await tester.pumpWidget(createTestApp(
+        CatalogItemFormScreen(
+          catalogProvider: provider,
+          businessId: testBusinessId,
+          catalogId: testCatalogId,
+        ),
+      ));
+      await tester.pumpAndSettle();
+      final nameField = find.widgetWithText(TextFormField, 'اسم البند *');
+      await tester.enterText(nameField, 'عطر فاخر');
+      await tester.tap(find.widgetWithText(FilledButton, 'متابعة'));
+      await tester.pumpAndSettle();
+
+      expect(provider.hasLoadedContract, isFalse);
+      expect(find.text('تعذر تحميل خيارات السعر والتوفر'), findsOneWidget);
+      expect(find.byKey(const Key('catalog_skip_pricing_draft')), findsOneWidget);
+      expect(repo.createItemCalled, isFalse);
+
+      // A missing pricing-label endpoint cannot force a fake price or stock.
+      await tester.tap(find.byKey(const Key('catalog_skip_pricing_draft')));
+      await tester.pumpAndSettle();
+      expect(find.text('التسعير: سيُحدد لاحقًا'), findsOneWidget);
+      expect(find.text('السعر والتوفر سيُضافان لاحقًا'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'حفظ المنتج'));
+      await tester.pumpAndSettle();
+
+      expect(repo.createItemCalled, isTrue);
+      final saved = repo.lastCreateItemRequest!;
+      expect(saved.name, 'عطر فاخر');
+      expect(saved.initialOffer, isNull);
+      expect(saved.pricingMode, 'quote_required');
+      expect(saved.availabilityMode, 'unknown');
+      expect(saved.fulfillmentMode, 'manual');
+    });
+
+    testWidgets('newly created item shows optional variants as final step',
+        (tester) async {
+      final repo = FakeCatalogRepository(
+        mockCatalogs: [sampleCatalog],
+        mockItems: [sampleItem],
+      );
+      final provider = CatalogProvider(catalogRepository: repo);
+      await tester.pumpWidget(createTestApp(
+        CatalogItemDetailScreen(
+          catalogProvider: provider,
+          businessId: testBusinessId,
+          catalogId: testCatalogId,
+          itemId: sampleItem.id,
+          initialTabIndex: 1,
+          justCreated: true,
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('تم حفظ المنتج كمسودة'), findsOneWidget);
+      expect(find.text('إنهاء الآن'), findsOneWidget);
+      expect(find.text('إضافة متغير'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('Phase 5 CatalogItemDetailScreen Widget Tests', () {
-    testWidgets('Displays 3 tabs and switches to Variants and Offers tabs', (
-      tester,
-    ) async {
+    testWidgets('Displays 3 tabs and switches to Variants and Offers tabs', (tester) async {
       final fakeRepo = FakeCatalogRepository(
         mockCatalogs: [sampleCatalog],
         mockItems: [sampleItem],
@@ -605,16 +701,14 @@ void main() {
       );
       final provider = CatalogProvider(catalogRepository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestApp(
-          CatalogItemDetailScreen(
-            catalogProvider: provider,
-            businessId: testBusinessId,
-            catalogId: testCatalogId,
-            itemId: testItemId,
-          ),
+      await tester.pumpWidget(createTestApp(
+        CatalogItemDetailScreen(
+          catalogProvider: provider,
+          businessId: testBusinessId,
+          catalogId: testCatalogId,
+          itemId: testItemId,
         ),
-      );
+      ));
       await tester.pumpAndSettle();
 
       // Check overview tab
@@ -636,9 +730,7 @@ void main() {
   });
 
   group('Phase 5 Dashboard Integration Widget Tests', () {
-    testWidgets('Dashboard renders Catalogs card and triggers navigation', (
-      tester,
-    ) async {
+    testWidgets('Dashboard renders Catalogs card and triggers navigation', (tester) async {
       var navigatedToCatalogs = false;
       final merchantRepo = FakeMerchantRepository(
         mockOverview: const DashboardOverview(
@@ -650,9 +742,7 @@ void main() {
           connections: {'واتساب': 5},
         ),
       );
-      final merchantProvider = MerchantProvider(
-        merchantRepository: merchantRepo,
-      );
+      final merchantProvider = MerchantProvider(merchantRepository: merchantRepo);
 
       const business = Business(
         id: testBusinessId,
@@ -661,20 +751,18 @@ void main() {
         status: 'active',
       );
 
-      await tester.pumpWidget(
-        createTestApp(
-          Scaffold(
-            body: DashboardTab(
-              merchantProvider: merchantProvider,
-              currentBusiness: business,
-              onNavigateToInbox: () {},
-              onNavigateToCatalogs: () {
-                navigatedToCatalogs = true;
-              },
-            ),
+      await tester.pumpWidget(createTestApp(
+        Scaffold(
+          body: DashboardTab(
+            merchantProvider: merchantProvider,
+            currentBusiness: business,
+            onNavigateToInbox: () {},
+            onNavigateToCatalogs: () {
+              navigatedToCatalogs = true;
+            },
           ),
         ),
-      );
+      ));
       await tester.pumpAndSettle();
 
       final catalogCard = find.text('الكتالوج والمنتجات');

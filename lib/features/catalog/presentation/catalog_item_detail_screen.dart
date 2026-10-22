@@ -1,10 +1,33 @@
 import 'package:flutter/material.dart';
-
 import '../../../app/localization/app_localizations.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/catalog_models.dart';
 import '../providers/catalog_provider.dart';
 import 'catalog_item_form_screen.dart';
+import 'catalog_specification_input.dart';
+import 'merchant_editor_dialog.dart';
+import 'catalog_currency_select.dart';
+
+class _VariantAttributeRow {
+  final TextEditingController name;
+  final TextEditingController text;
+  final String? originalKey;
+  final dynamic originalValue;
+  bool changed = false;
+
+  _VariantAttributeRow({
+    String name = '',
+    String text = '',
+    this.originalKey,
+    this.originalValue,
+  }) : name = TextEditingController(text: name),
+       text = TextEditingController(text: text);
+
+  void dispose() {
+    name.dispose();
+    text.dispose();
+  }
+}
 
 /// Screen displaying complete details for a CatalogItem, its Variants, and Offers.
 class CatalogItemDetailScreen extends StatefulWidget {
@@ -12,6 +35,9 @@ class CatalogItemDetailScreen extends StatefulWidget {
   final String businessId;
   final String catalogId;
   final String itemId;
+  final String? businessCurrency;
+  final bool justCreated;
+  final int initialTabIndex;
 
   const CatalogItemDetailScreen({
     super.key,
@@ -19,6 +45,9 @@ class CatalogItemDetailScreen extends StatefulWidget {
     required this.businessId,
     required this.catalogId,
     required this.itemId,
+    this.businessCurrency,
+    this.justCreated = false,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -29,11 +58,15 @@ class CatalogItemDetailScreen extends StatefulWidget {
 class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  AttributeSchema? _schema;
+  bool _schemaLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3, initialIndex: widget.initialTabIndex, vsync: this,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadDetails();
     });
@@ -51,6 +84,21 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
       widget.catalogId,
       widget.itemId,
     );
+    final item = widget.catalogProvider.selectedItem;
+    if (!mounted || item?.attributeSchemaId == null) {
+      if (mounted) setState(() => _schema = null);
+      return;
+    }
+    setState(() => _schemaLoading = true);
+    try {
+      final schema = await widget.catalogProvider.catalogRepository.getAttributeSchema(
+        businessId: widget.businessId, schemaId: item!.attributeSchemaId!);
+      if (mounted) setState(() => _schema = schema);
+    } catch (_) {
+      if (mounted) setState(() => _schema = null);
+    } finally {
+      if (mounted) setState(() => _schemaLoading = false);
+    }
   }
 
   Color _getStatusColor(String status) {
@@ -114,254 +162,309 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
   // Variant Dialogs
   // ==========================================
 
-  void _showAddVariantDialog() {
-    final nameController = TextEditingController();
-    final attrKeyController = TextEditingController();
-    final attrValueController = TextEditingController();
+  void _showAddVariantDialog() => _showVariantDialog();
+
+  void _showEditVariantDialog(Variant variant) =>
+      _showVariantDialog(existing: variant);
+
+  Future<void> _showVariantDialog({Variant? existing}) async {
     final formKey = GlobalKey<FormState>();
-
-    showDialog(
+    final nameController = TextEditingController(text: existing?.name ?? '');
+    final initialValues = Map<String, dynamic>.from(existing?.attributes ?? {});
+    final values = Map<String, dynamic>.from(initialValues);
+    final removed = <String>{};
+    final rows = <_VariantAttributeRow>[];
+    final managedDefinitions = _schema?.definitions ?? <AttributeDefinition>[];
+    final managedKeys = managedDefinitions.map((d) => d.key).toSet();
+    for (final entry in initialValues.entries) {
+      if (managedKeys.contains(entry.key) || entry.key.startsWith('attr_')) continue;
+      rows.add(_VariantAttributeRow(
+        name: entry.key, originalKey: entry.key,
+        text: entry.value is String ? entry.value as String : '',
+        originalValue: entry.value,
+      ));
+    }
+    String selectedStatus = existing?.status ?? 'active';
+    bool busy = false;
+    String? error;
+    bool attributesDirty = false;
+    final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) {
-        String strings(String key) => AppStrings.get(key, context);
-        return AlertDialog(
-          title: Text(strings('add_variant')),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: '${strings('variant_name')} *',
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
-                        return strings('required_field');
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: attrKeyController,
-                          decoration: InputDecoration(
-                            labelText: strings('attribute_key'),
-                            hintText: 'e.g. size',
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          controller: attrValueController,
-                          decoration: InputDecoration(
-                            labelText: strings('attribute_value'),
-                            hintText: 'e.g. XL',
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(strings('cancel_action')),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                Navigator.of(ctx).pop();
-
-                final attributes = <String, dynamic>{};
-                if (attrKeyController.text.trim().isNotEmpty) {
-                  attributes[attrKeyController.text.trim()] =
-                      attrValueController.text.trim();
-                }
-
-                final created = await widget.catalogProvider.createVariant(
-                  widget.businessId,
-                  widget.itemId,
-                  CreateVariantRequest(
-                    name: nameController.text.trim(),
-                    attributes: attributes,
-                  ),
-                );
-
-                if (mounted) {
-                  if (created != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(strings('variant_created_success')),
-                        backgroundColor: AppColors.statusSuccess,
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          widget.catalogProvider.actionError ??
-                              strings('request_failed'),
-                        ),
-                        backgroundColor: AppColors.statusError,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: Text(strings('add_variant')),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showEditVariantDialog(Variant variant) {
-    final nameController = TextEditingController(text: variant.name);
-    String selectedStatus = variant.status;
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        String strings(String key) => AppStrings.get(key, context);
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(strings('edit_variant')),
-              content: Form(
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final contract = widget.catalogProvider.entityContract;
+        return StatefulBuilder(builder: (dialogContext, setDialogState) {
+          final chosen = values.keys.toSet();
+          final notChosen = managedDefinitions
+              .where((definition) => !chosen.contains(definition.key)).toList();
+          return MerchantEditorDialog(
+            title: Text(existing == null ? 'إضافة خيار للمنتج' : 'تعديل خيار المنتج'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Form(
                 key: formKey,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TextFormField(
                         controller: nameController,
-                        decoration: InputDecoration(
-                          labelText: '${strings('variant_name')} *',
-                          border: const OutlineInputBorder(),
+                        enabled: !busy,
+                        decoration: const InputDecoration(
+                          labelText: 'اسم الخيار *',
+                          hintText: 'مثل: كبير - أزرق',
+                          border: OutlineInputBorder(),
                         ),
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return strings('required_field');
-                          }
-                          return null;
-                        },
+                        validator: (val) =>
+                          val == null || val.trim().isEmpty ? 'اكتب اسم الخيار' : null,
                       ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedStatus,
-                        decoration: InputDecoration(
-                          labelText: strings('customer_status'),
-                          border: const OutlineInputBorder(),
+                      if (existing != null) ...[
+                        const SizedBox(height: 14),
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedStatus,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'حالة الخيار'),
+                          items: [
+                            for (final item in contract.variantStatuses.entries)
+                              DropdownMenuItem<String>(
+                                value: item.key,
+                                child: Text(item.value,
+                                  overflow: TextOverflow.ellipsis)),
+                            if (!contract.variantStatuses.containsKey(selectedStatus))
+                              DropdownMenuItem(value: selectedStatus,
+                                child: const Text('حالة محفوظة')),
+                          ],
+                          onChanged: busy ? null : (val) {
+                            if (val != null) setDialogState(() => selectedStatus = val);
+                          },
                         ),
-                        items: [
-                          DropdownMenuItem(
-                            value: 'active',
-                            child: Text(strings('status_active')),
+                      ],
+                      if (_schema != null) ...[
+                        const SizedBox(height: 16),
+                        const Text('معلومات من قالب المواصفات',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                        for (final def in managedDefinitions)
+                          if (values.containsKey(def.key))
+                            CatalogSpecificationInput(
+                              key: ValueKey('variant-'+def.key),
+                              definition: def,
+                              value: values[def.key],
+                              enabled: !busy,
+                              onChanged: (value) => setDialogState(() {
+                                if (value == null) {
+                                  values.remove(def.key);
+                                } else {
+                                  values[def.key] = value;
+                                }
+                                attributesDirty = true;
+                              }),
+                            ),
+                        if (notChosen.isNotEmpty)
+                          DropdownButtonFormField<String>(
+                            key: ValueKey('variant-add-'+notChosen.length.toString()),
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'إضافة معلومة من القالب'),
+                            items: [
+                              for (final definition in notChosen)
+                                DropdownMenuItem(
+                                  value: definition.key,
+                                  child: Text(definition.label,
+                                    overflow: TextOverflow.ellipsis)),
+                            ],
+                            onChanged: busy ? null : (key) {
+                              if (key == null) return;
+                              setDialogState(() {
+                                // Null marks a selected but not answered attribute.
+                                values[key] = null;
+                                attributesDirty = true;
+                              });
+                            },
                           ),
-                          DropdownMenuItem(
-                            value: 'inactive',
-                            child: Text(strings('status_inactive')),
-                          ),
-                          DropdownMenuItem(
-                            value: 'archived',
-                            child: Text(strings('status_archived')),
-                          ),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() => selectedStatus = val);
-                          }
-                        },
+                      ],
+                      const SizedBox(height: 16),
+                      const Text('معلومات إضافية', style: TextStyle(
+                        fontWeight: FontWeight.w600)),
+                      for (var index = 0; index < rows.length; index++) ...[
+                        Builder(builder: (_) {
+                          final row = rows[index];
+                          final complex = row.originalKey != null &&
+                            row.originalValue is! String;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Column(children: [
+                              Row(children: [
+                                Expanded(child: TextFormField(
+                                  controller: row.name,
+                                  enabled: !busy && row.originalKey == null,
+                                  textDirection: TextDirection.rtl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'اسم المعلومة',
+                                    hintText: 'مثل: اللون أو المقاس',
+                                  ),
+                                )),
+                                IconButton(
+                                  tooltip: 'حذف المعلومة',
+                                  onPressed: busy ? null : () => setDialogState(() {
+                                    if (row.originalKey != null) {
+                                      removed.add(row.originalKey!);
+                                    }
+                                    rows.removeAt(index);
+                                    attributesDirty = true;
+                                    row.dispose();
+                                  }),
+                                  icon: const Icon(Icons.delete_outline_rounded)),
+                              ]),
+                              const SizedBox(height: 8),
+                              if (complex)
+                                Text('القيمة المحفوظة: ${displaySpecification(row.originalValue)} (ستبقى كما هي)')
+                              else
+                                TextFormField(
+                                  controller: row.text,
+                                  enabled: !busy,
+                                  textDirection: TextDirection.rtl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'قيمة المعلومة',
+                                    hintText: 'اكتب القيمة بالعربية'),
+                                  onChanged: (_) { row.changed = true; attributesDirty = true; },
+                                ),
+                            ]),
+                          );
+                        }),
+                      ],
+                      OutlinedButton.icon(
+                        onPressed: busy ? null : () => setDialogState(() {
+                          rows.add(_VariantAttributeRow());
+                        }),
+                        icon: const Icon(Icons.add),
+                        label: const Text('إضافة معلومة'),
                       ),
+                      if (_schema == null && initialValues.keys
+                          .any((key) => key.startsWith('attr_')))
+                        const Text('المواصفات المحفوظة من القالب ستبقى كما هي.',
+                          style: TextStyle(fontSize: 12)),
+                      if (error != null) ...[
+                        const SizedBox(height: 8),
+                        Text(error!, style: const TextStyle(
+                          color: AppColors.statusError)),
+                      ],
                     ],
                   ),
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(strings('cancel_action')),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) return;
-                    Navigator.of(ctx).pop();
-                    final messenger = ScaffoldMessenger.of(context);
-
-                    final updated = await widget.catalogProvider.updateVariant(
-                      widget.businessId,
-                      variant.id,
-                      UpdateVariantRequest(
-                        name: nameController.text.trim(),
-                        status: selectedStatus,
-                      ),
-                      ifMatch: variant.resourceVersion,
-                    );
-
-                    if (!mounted) return;
-                    if (updated != null) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(strings('variant_updated_success')),
-                          backgroundColor: AppColors.statusSuccess,
-                        ),
-                      );
-                    } else {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            widget.catalogProvider.actionError ??
-                                strings('request_failed'),
-                          ),
-                          backgroundColor: AppColors.statusError,
-                        ),
-                      );
+            ),
+            actions: [
+              TextButton(
+                onPressed: busy ? null : () => Navigator.of(dialogContext).pop(false),
+                child: const Text('إلغاء')),
+              ElevatedButton(
+                onPressed: busy ? null : () async {
+                  if (!formKey.currentState!.validate()) return;
+                  final next = Map<String, dynamic>.from(values);
+                  for (final key in removed) { next.remove(key); }
+                  final labels = managedDefinitions.map((d) => d.label.trim()).toSet();
+                  for (final row in rows) {
+                    final name = row.name.text.trim();
+                    final value = row.text.text.trim();
+                    final untouched = row.originalKey != null && !row.changed;
+                    if (name.isEmpty || (!untouched && value.isEmpty)) {
+                      setDialogState(() => error = 'أدخل اسم المعلومة وقيمتها.');
+                      return;
                     }
-                  },
-                  child: Text(strings('save_changes')),
-                ),
-              ],
-            );
-          },
-        );
+                    if (name.startsWith('attr_') || labels.contains(name) ||
+                        next.containsKey(name) && row.originalKey != name) {
+                      setDialogState(() => error = 'استخدم اسم معلومة واضحًا وغير مكرر.');
+                      return;
+                    }
+                    if (row.originalKey != null) next.remove(row.originalKey);
+                    next[name] = untouched ? row.originalValue : value;
+                    labels.add(name);
+                  }
+                  for (final def in managedDefinitions) {
+                    if (!next.containsKey(def.key)) continue;
+                    final message = validateSpecification(def, next[def.key]);
+                    if (message != null) {
+                      setDialogState(() => error = message);
+                      return;
+                    }
+                  }
+                  setDialogState(() { busy = true; error = null; });
+                  final success = existing == null
+                    ? await widget.catalogProvider.createVariant(
+                        widget.businessId, widget.itemId,
+                        CreateVariantRequest(
+                          name: nameController.text.trim(),
+                          attributes: next..removeWhere((_, v) => v == null),
+                        ))
+                    : await widget.catalogProvider.updateVariant(
+                        widget.businessId, existing.id,
+                        UpdateVariantRequest(
+                          name: nameController.text.trim(),
+                          status: selectedStatus,
+                          attributes: attributesDirty ? (next..removeWhere((_, v) => v == null)) : null,
+                        ),
+                        ifMatch: existing.resourceVersion,
+                      );
+                  if (!dialogContext.mounted) return;
+                  if (success != null) {
+                    Navigator.of(dialogContext).pop(true);
+                  } else {
+                    setDialogState(() {
+                      busy = false;
+                      error = widget.catalogProvider.actionError ??
+                        'تعذر حفظ الخيار. تحقق من الاتصال.';
+                    });
+                  }
+                },
+                child: Text(busy ? 'جاري الحفظ...' : 'حفظ'),
+              ),
+            ],
+          );
+        });
       },
     );
+    for (final row in rows) { row.dispose(); }
+    nameController.dispose();
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حفظ خيار المنتج')));
+    }
   }
 
   // ==========================================
   // Offer Dialogs
   // ==========================================
 
-  void _showAddOfferDialog() {
-    final nameController = TextEditingController();
-    final amountController = TextEditingController();
-    final currencyController = TextEditingController(text: 'SAR');
-    final pricingUnitController = TextEditingController();
+  void _showAddOfferDialog() => _showOfferDialog();
+  void _showEditOfferDialog(Offer offer) => _showOfferDialog(existing: offer);
+
+  void _showOfferDialog({Offer? existing}) {
+    final nameController = TextEditingController(
+      text: existing?.name ?? 'السعر الأساسي');
+    final amountController = TextEditingController(
+      text: existing?.amount?.toString() ?? '');
+    final currencyController = TextEditingController(
+      text: existing?.currency ?? widget.businessCurrency ?? '');
+    final pricingUnitController = TextEditingController(
+      text: existing?.pricingUnit ?? '');
+    final validityFromController = TextEditingController(
+      text: existing?.validityFrom ?? '');
+    final validityUntilController = TextEditingController(
+      text: existing?.validityUntil ?? '');
     final formKey = GlobalKey<FormState>();
 
-    String pricingMode =
-        widget.catalogProvider.selectedItem?.pricingMode ?? 'fixed';
+    String pricingMode = existing?.pricingMode ?? widget.catalogProvider.selectedItem?.pricingMode ?? 'fixed';
     String availabilityMode =
-        widget.catalogProvider.selectedItem?.availabilityMode ?? 'stock';
-    String availabilityStatus = 'available';
+        existing?.availabilityMode ?? widget.catalogProvider.selectedItem?.availabilityMode ?? 'unknown';
+    String? availabilityStatus = existing?.availabilityStatus;
     String fulfillmentMode =
-        widget.catalogProvider.selectedItem?.fulfillmentMode ?? 'delivery';
-    String? selectedVariantId;
+        existing?.fulfillmentMode ?? widget.catalogProvider.selectedItem?.fulfillmentMode ?? 'manual';
+    String? selectedVariantId = existing?.variantId;
+    String status = existing?.status ?? 'active';
+    String? offerError;
+    bool isSaving = false;
 
     showDialog(
       context: context,
@@ -372,8 +475,8 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(strings('add_offer')),
+            return MerchantEditorDialog(
+              title: Text(existing == null ? strings('add_offer') : strings('edit_offer')),
               content: Form(
                 key: formKey,
                 child: SingleChildScrollView(
@@ -394,44 +497,48 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                         },
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: TextFormField(
-                              controller: amountController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              decoration: InputDecoration(
-                                labelText: strings('price_amount'),
-                                border: const OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              controller: currencyController,
-                              decoration: InputDecoration(
-                                labelText: strings('currency'),
-                                border: const OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
+                      DropdownButtonFormField<String>(
+                        initialValue: pricingMode,
+                        isExpanded: true,
+                        decoration: const InputDecoration(labelText: 'طريقة التسعير'),
+                        items: [
+                          for (final option in contract.pricingModes.entries)
+                            DropdownMenuItem(value: option.key,
+                              child: Text(merchantCatalogOptionLabel(option.value),
+                                overflow: TextOverflow.ellipsis)),
                         ],
+                        onChanged: isSaving ? null : (value) {
+                          if (value != null) setDialogState(() => pricingMode = value);
+                        },
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: pricingUnitController,
-                        decoration: InputDecoration(
-                          labelText: strings('pricing_unit'),
-                          hintText: 'e.g. piece, hour',
-                          border: const OutlineInputBorder(),
+                      if (pricingMode != 'quote_required') ...[
+                        TextFormField(
+                          controller: amountController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: pricingMode == 'dynamic'
+                              ? 'مبلغ استرشادي (اختياري)' : 'المبلغ',
+                            border: const OutlineInputBorder(),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        CatalogCurrencySelect(
+                          controller: currencyController, enabled: !isSaving),
+
+                        const SizedBox(height: 12),
+                      ] else
+                        const Text('لن يُسجل مبلغ. يحدد السعر بعد معرفة الطلب.'),
+                      if (['per_unit', 'per_person', 'per_day']
+                        .contains(pricingMode))
+                        TextFormField(
+                          controller: pricingUnitController,
+                          decoration: const InputDecoration(
+                            labelText: 'السعر لكل ماذا؟',
+                            hintText: 'مثل: قطعة أو ساعة',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
                       const SizedBox(height: 12),
                       if (variants.isNotEmpty) ...[
                         DropdownButtonFormField<String>(
@@ -444,7 +551,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                           items: [
                             DropdownMenuItem<String>(
                               value: null,
-                              child: Text(strings('all_transactions')),
+                              child: const Text('سعر عام لكافة الخيارات'),
                             ),
                             ...variants.map((v) {
                               return DropdownMenuItem<String>(
@@ -457,8 +564,35 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                             setDialogState(() => selectedVariantId = val);
                           },
                         ),
+                        if (widget.catalogProvider.variantsHasMore)
+                          TextButton(
+                            onPressed: isSaving ? null : () async {
+                              await widget.catalogProvider.loadMoreVariants(
+                                widget.businessId, widget.itemId);
+                              setDialogState(() {});
+                            },
+                            child: const Text('عرض المزيد من الخيارات'),
+                          ),
                         const SizedBox(height: 12),
                       ],
+                      DropdownButtonFormField<String>(
+                        initialValue: availabilityMode,
+                        decoration: const InputDecoration(
+                          labelText: 'كيف تتأكد من التوفر؟',
+                          border: OutlineInputBorder(),
+                        ),
+                        isExpanded: true,
+                        items: [
+                          for (final option in contract.availabilityModes.entries)
+                            DropdownMenuItem(value: option.key,
+                              child: Text(merchantCatalogOptionLabel(option.value),
+                                overflow: TextOverflow.ellipsis)),
+                        ],
+                        onChanged: isSaving ? null : (value) {
+                          if (value != null) setDialogState(() => availabilityMode = value);
+                        },
+                      ),
+                      const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: availabilityStatus,
                         decoration: InputDecoration(
@@ -469,234 +603,223 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                         items: contract.availabilityStatuses.entries.map((e) {
                           return DropdownMenuItem(
                             value: e.key,
-                            child: Text('${e.key} - ${e.value}'),
+                            child: Text(merchantCatalogOptionLabel(e.value), overflow: TextOverflow.ellipsis),
                           );
                         }).toList(),
                         onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() => availabilityStatus = val);
-                          }
+                          setDialogState(() => availabilityStatus = val);
                         },
                       ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: fulfillmentMode,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'طريقة الحصول على المنتج أو الخدمة',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          for (final option in contract.fulfillmentModes.entries)
+                            DropdownMenuItem(value: option.key,
+                              child: Text(merchantCatalogOptionLabel(option.value),
+                                overflow: TextOverflow.ellipsis)),
+                        ],
+                        onChanged: isSaving ? null : (value) {
+                          if (value != null) setDialogState(() => fulfillmentMode = value);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: status,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'حالة السعر',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          for (final option in contract.offerStatuses.entries)
+                            DropdownMenuItem(value: option.key,
+                              child: Text(merchantCatalogOptionLabel(option.value),
+                                overflow: TextOverflow.ellipsis)),
+                        ],
+                        onChanged: isSaving ? null : (value) {
+                          if (value != null) setDialogState(() => status = value);
+                        },
+                      ),
+                      if (existing != null) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: validityFromController,
+                          readOnly: true,
+                          decoration: const InputDecoration(
+                            labelText: 'بداية صلاحية السعر (اختياري)',
+                            suffixIcon: Icon(Icons.event_outlined)),
+                          onTap: () async {
+                            final initial = DateTime.tryParse(validityFromController.text)
+                              ?? DateTime.now();
+                            final date = await showDatePicker(
+                              context: context, initialDate: initial,
+                              firstDate: DateTime(1900), lastDate: DateTime(2100));
+                            if (date == null || !context.mounted) return;
+                            final time = await showTimePicker(
+                              context: context, initialTime: TimeOfDay.fromDateTime(initial));
+                            if (time == null) return;
+                            final selected = DateTime(date.year, date.month,
+                              date.day, time.hour, time.minute);
+                            setDialogState(() => validityFromController.text =
+                              selected.toUtc().toIso8601String());
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: validityUntilController,
+                          readOnly: true,
+                          decoration: const InputDecoration(
+                            labelText: 'نهاية صلاحية السعر (اختياري)',
+                            suffixIcon: Icon(Icons.event_outlined)),
+                          onTap: () async {
+                            final initial = DateTime.tryParse(validityUntilController.text)
+                              ?? DateTime.now();
+                            final date = await showDatePicker(
+                              context: context, initialDate: initial,
+                              firstDate: DateTime(1900), lastDate: DateTime(2100));
+                            if (date == null || !context.mounted) return;
+                            final time = await showTimePicker(
+                              context: context, initialTime: TimeOfDay.fromDateTime(initial));
+                            if (time == null) return;
+                            final selected = DateTime(date.year, date.month,
+                              date.day, time.hour, time.minute);
+                            setDialogState(() => validityUntilController.text =
+                              selected.toUtc().toIso8601String());
+                          },
+                        ),
+                      ],
+                      if (offerError != null)
+                        Padding(padding: const EdgeInsets.only(top: 8),
+                          child: Text(offerError!,
+                            style: const TextStyle(color: AppColors.statusError))),
                     ],
                   ),
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(strings('cancel_action')),
+                  onPressed: isSaving ? null : () => Navigator.of(ctx).pop(),
+                  child: const Text('إلغاء'),
                 ),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: isSaving ? null : () async {
                     if (!formKey.currentState!.validate()) return;
-                    Navigator.of(ctx).pop();
+                    if (!widget.catalogProvider.hasLoadedContract) {
+                      setDialogState(() => offerError = 'أعد تحميل اختيارات الكتالوج أولًا.');
+                      return;
+                    }
+                    final amount = double.tryParse(amountController.text.trim());
+                    final requiresAmount = pricingMode != 'quote_required' &&
+                        pricingMode != 'dynamic';
+                    final hasAmount = amountController.text.trim().isNotEmpty;
+                    final validFrom = DateTime.tryParse(validityFromController.text);
+                    final validUntil = DateTime.tryParse(validityUntilController.text);
+                    if (existing != null && validFrom != null && validUntil != null &&
+                        validFrom.isAfter(validUntil)) {
+                      setDialogState(() => offerError =
+                        'تاريخ بداية السعر لا يمكن أن يكون بعد نهايته.');
+                      return;
+                    }
+                    if (availabilityStatus == null ||
+                        (requiresAmount && (amount == null || amount < 0)) ||
+                        (hasAmount && amount == null) ||
+                        (hasAmount && !RegExp(r'^[A-Za-z]{3}$')
+                          .hasMatch(currencyController.text.trim())) ||
+                        (pricingMode == 'per_unit' && pricingUnitController.text.trim().isEmpty)) {
+                      setDialogState(() => offerError = 'راجع المبلغ والعملة والتوفر قبل الحفظ.');
+                      return;
+                    }
+                    setDialogState(() { isSaving = true; offerError = null; });
                     final messenger = ScaffoldMessenger.of(context);
-
-                    final amount = double.tryParse(
-                      amountController.text.trim(),
-                    );
-                    final created = await widget.catalogProvider.createOffer(
+                    final result = existing == null
+                        ? await widget.catalogProvider.createOffer(
                       widget.businessId,
                       widget.itemId,
                       CreateOfferRequest(
                         name: nameController.text.trim(),
                         pricingMode: pricingMode,
                         amount: amount,
-                        currency: currencyController.text.trim().isNotEmpty
-                            ? currencyController.text.trim()
-                            : 'SAR',
-                        pricingUnit:
-                            pricingUnitController.text.trim().isNotEmpty
+                        currency: amount != null && pricingMode != 'quote_required'
+                            ? currencyController.text.trim().toUpperCase() : null,
+                        pricingUnit: pricingUnitController.text.trim().isNotEmpty
                             ? pricingUnitController.text.trim()
-                            : null,
+                            : pricingMode == 'per_person' ? 'person'
+                            : pricingMode == 'per_day' ? 'day' : null,
                         availabilityMode: availabilityMode,
-                        availabilityStatus: availabilityStatus,
+                        availabilityStatus: availabilityStatus!,
                         fulfillmentMode: fulfillmentMode,
                         variantId: selectedVariantId,
-                        status: 'active',
+                        status: status,
                       ),
-                    );
+                    )
+                        : await widget.catalogProvider.updateOffer(
+                          widget.businessId,
+                          existing.id,
+                          UpdateOfferRequest(
+                            name: nameController.text.trim(),
+                            pricingMode: pricingMode,
+                            amount: pricingMode == 'quote_required' ? null : amount,
+                            currency: amount != null && pricingMode != 'quote_required'
+                              ? currencyController.text.trim().toUpperCase() : null,
+                            pricingUnit: pricingUnitController.text.trim().isNotEmpty
+                              ? pricingUnitController.text.trim()
+                              : pricingMode == 'per_person' ? 'person'
+                              : pricingMode == 'per_day' ? 'day' : null,
+                            availabilityMode: availabilityMode,
+                            availabilityStatus: availabilityStatus!,
+                            fulfillmentMode: fulfillmentMode,
+                            variantId: selectedVariantId,
+                            status: status,
+                            validityFrom: validityFromController.text.trim().isEmpty
+                              ? null : validityFromController.text.trim(),
+                            validityUntil: validityUntilController.text.trim().isEmpty
+                              ? null : validityUntilController.text.trim(),
+                            sendNullableFields: true,
+                          ),
+                          ifMatch: existing.resourceVersion,
+                        );
 
-                    if (!mounted) return;
-                    if (created != null) {
+                    if (!mounted || !ctx.mounted) return;
+                    if (result != null) {
+                      Navigator.of(ctx).pop();
                       messenger.showSnackBar(
                         SnackBar(
-                          content: Text(strings('offer_created_success')),
+                          content: Text(existing == null
+                            ? strings('offer_created_success')
+                            : strings('offer_updated_success')),
                           backgroundColor: AppColors.statusSuccess,
                         ),
                       );
                     } else {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            widget.catalogProvider.actionError ??
-                                strings('request_failed'),
-                          ),
-                          backgroundColor: AppColors.statusError,
-                        ),
-                      );
+                      setDialogState(() {
+                        isSaving = false;
+                        offerError = widget.catalogProvider.actionError ??
+                            strings('request_failed');
+                      });
                     }
                   },
-                  child: Text(strings('add_offer')),
+                  child: Text(isSaving ? 'جاري الحفظ...' :
+                    (existing == null ? strings('add_offer') : strings('save_changes'))),
                 ),
               ],
             );
           },
         );
       },
-    );
-  }
-
-  void _showEditOfferDialog(Offer offer) {
-    final nameController = TextEditingController(text: offer.name);
-    final amountController = TextEditingController(
-      text: offer.amount?.toString() ?? '',
-    );
-    String selectedAvailabilityStatus = offer.availabilityStatus;
-    String selectedStatus = offer.status;
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        String strings(String key) => AppStrings.get(key, context);
-        final contract = widget.catalogProvider.entityContract;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(strings('edit_offer')),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: nameController,
-                        decoration: InputDecoration(
-                          labelText: '${strings('offer_name')} *',
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return strings('required_field');
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: amountController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: strings('price_amount'),
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedAvailabilityStatus,
-                        decoration: InputDecoration(
-                          labelText: strings('availability_status'),
-                          border: const OutlineInputBorder(),
-                        ),
-                        isExpanded: true,
-                        items: contract.availabilityStatuses.entries.map((e) {
-                          return DropdownMenuItem(
-                            value: e.key,
-                            child: Text('${e.key} - ${e.value}'),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(
-                              () => selectedAvailabilityStatus = val,
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedStatus,
-                        decoration: InputDecoration(
-                          labelText: strings('customer_status'),
-                          border: const OutlineInputBorder(),
-                        ),
-                        isExpanded: true,
-                        items: contract.offerStatuses.entries.map((e) {
-                          return DropdownMenuItem(
-                            value: e.key,
-                            child: Text('${e.key} - ${e.value}'),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() => selectedStatus = val);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(strings('cancel_action')),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) return;
-                    Navigator.of(ctx).pop();
-                    final messenger = ScaffoldMessenger.of(context);
-
-                    final amount = double.tryParse(
-                      amountController.text.trim(),
-                    );
-                    final updated = await widget.catalogProvider.updateOffer(
-                      widget.businessId,
-                      offer.id,
-                      UpdateOfferRequest(
-                        name: nameController.text.trim(),
-                        amount: amount,
-                        availabilityStatus: selectedAvailabilityStatus,
-                        status: selectedStatus,
-                      ),
-                      ifMatch: offer.resourceVersion,
-                    );
-
-                    if (!mounted) return;
-                    if (updated != null) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(strings('offer_updated_success')),
-                          backgroundColor: AppColors.statusSuccess,
-                        ),
-                      );
-                    } else {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            widget.catalogProvider.actionError ??
-                                strings('request_failed'),
-                          ),
-                          backgroundColor: AppColors.statusError,
-                        ),
-                      );
-                    }
-                  },
-                  child: Text(strings('save_changes')),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+    ).whenComplete(() {
+      nameController.dispose();
+      amountController.dispose();
+      currencyController.dispose();
+      pricingUnitController.dispose();
+      validityFromController.dispose();
+      validityUntilController.dispose();
+    });
   }
 
   @override
@@ -724,17 +847,17 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                   icon: const Icon(Icons.edit_outlined),
                   tooltip: strings('edit_item'),
                   onPressed: () async {
-                    final updated = await Navigator.of(context)
-                        .push<CatalogItem>(
-                          MaterialPageRoute(
-                            builder: (_) => CatalogItemFormScreen(
-                              catalogProvider: provider,
-                              businessId: widget.businessId,
-                              catalogId: widget.catalogId,
-                              existingItem: item,
-                            ),
-                          ),
-                        );
+                    final updated = await Navigator.of(context).push<CatalogItem>(
+                      MaterialPageRoute(
+                        builder: (_) => CatalogItemFormScreen(
+                          catalogProvider: provider,
+                          businessId: widget.businessId,
+                          catalogId: widget.catalogId,
+                          existingItem: item,
+                          businessCurrency: widget.businessCurrency,
+                        ),
+                      ),
+                    );
                     if (updated != null) {
                       _loadDetails();
                     }
@@ -758,42 +881,42 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
           body: provider.isLoadingItemDetail && item == null
               ? const Center(child: CircularProgressIndicator())
               : provider.itemDetailError != null && item == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          size: 48,
-                          color: AppColors.statusError,
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              size: 48,
+                              color: AppColors.statusError,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              provider.itemDetailError!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: AppColors.textMuted),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadDetails,
+                              child: Text(strings('retry')),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          provider.itemDetailError!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.textMuted),
+                      ),
+                    )
+                  : item == null
+                      ? Center(child: Text(strings('no_items')))
+                      : TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildOverviewTab(item, contract, strings),
+                            _buildVariantsTab(variants, contract, strings),
+                            _buildOffersTab(offers, contract, strings),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadDetails,
-                          child: Text(strings('retry')),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : item == null
-              ? Center(child: Text(strings('no_items')))
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildOverviewTab(item, contract, strings),
-                    _buildVariantsTab(variants, contract, strings),
-                    _buildOffersTab(offers, contract, strings),
-                  ],
-                ),
         );
       },
     );
@@ -842,9 +965,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: statusBg,
                         borderRadius: BorderRadius.circular(12),
@@ -862,7 +983,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${strings('item_type')}: ${item.itemType}',
+                  '${strings('item_type')}: ${merchantItemTypeLabel(item.itemType)}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -915,19 +1036,19 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
               children: [
                 _buildInfoRow(
                   strings('pricing_mode'),
-                  contract.labelPricingMode(item.pricingMode),
+                  merchantCatalogOptionLabel(contract.labelPricingMode(item.pricingMode)),
                   Icons.price_change_rounded,
                 ),
                 const Divider(height: 16),
                 _buildInfoRow(
                   strings('availability_mode'),
-                  contract.labelAvailabilityMode(item.availabilityMode),
+                  merchantCatalogOptionLabel(contract.labelAvailabilityMode(item.availabilityMode)),
                   Icons.event_available_rounded,
                 ),
                 const Divider(height: 16),
                 _buildInfoRow(
                   strings('fulfillment_mode'),
-                  contract.labelFulfillmentMode(item.fulfillmentMode),
+                  merchantCatalogOptionLabel(contract.labelFulfillmentMode(item.fulfillmentMode)),
                   Icons.local_shipping_rounded,
                 ),
                 const Divider(height: 16),
@@ -944,6 +1065,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
         ),
         const SizedBox(height: 16),
 
+        if (_schemaLoading) const LinearProgressIndicator(),
         // Custom Attributes Card
         Card(
           elevation: 0,
@@ -968,11 +1090,8 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                 const SizedBox(height: 12),
                 if (item.attributes.isEmpty)
                   Text(
-                    strings('no_attributions'),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textMuted,
-                    ),
+                    'لم تضف معلومات أو مواصفات بعد',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                   )
                 else
                   ...item.attributes.entries.map((e) {
@@ -982,15 +1101,14 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: AppColors.surfaceSubtle,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              e.key,
+                              specificationName(e.key,
+                                _schema?.definitions ?? <AttributeDefinition>[]),
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -1001,7 +1119,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              e.value?.toString() ?? '',
+                              displaySpecification(e.value),
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textMuted,
@@ -1031,10 +1149,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textMuted,
-                ),
+                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
               const SizedBox(height: 2),
               Text(
@@ -1056,6 +1171,37 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
   // Tab 2: Variants
   // ==========================================
 
+  Widget _postCreateBanner() => Card(
+    margin: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+    color: AppColors.surfaceCanvas,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(children: [
+            Icon(Icons.check_circle_outline_rounded,
+              color: AppColors.statusSuccess),
+            SizedBox(width: 10),
+            Expanded(child: Text('تم حفظ المنتج كمسودة',
+              style: TextStyle(fontWeight: FontWeight.bold))),
+          ]),
+          const SizedBox(height: 8),
+          const Text(
+            'هذه الخطوة اختيارية. إذا كان للمنتج مقاسات أو ألوان أو خيارات مختلفة، أضفها الآن. يمكنك تجاوزها والعودة إليها لاحقًا.',
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('إنهاء الآن'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
   Widget _buildVariantsTab(
     List<Variant> variants,
     CatalogEntityContract contract,
@@ -1069,7 +1215,45 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
         icon: const Icon(Icons.add_rounded),
         label: Text(strings('add_variant')),
       ),
-      body: variants.isEmpty
+      body: Column(children: [
+        if (widget.justCreated) _postCreateBanner(),
+        Expanded(child: widget.catalogProvider.isLoadingVariants &&
+                variants.isEmpty
+          ? const Center(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 14),
+                Text('جاري تحميل متغيرات المنتج'),
+              ],
+            ))
+          : widget.catalogProvider.variantsError != null &&
+                variants.isEmpty
+          ? Center(child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_off_outlined,
+                    color: AppColors.textMuted, size: 40),
+                  const SizedBox(height: 12),
+                  Text(widget.catalogProvider.variantsError!,
+                    textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => widget.catalogProvider.refreshVariants(
+                      widget.businessId, widget.itemId),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('إعادة تحميل المتغيرات'),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('تم حفظ المنتج، ويمكنك العودة لإضافة متغيراته لاحقًا.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textMuted)),
+                ],
+              ),
+            ))
+          : variants.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1095,9 +1279,18 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-              itemCount: variants.length,
+              itemCount: variants.length + (widget.catalogProvider.variantsHasMore ? 1 : 0),
               separatorBuilder: (_, index) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
+                if (index == variants.length) {
+                  return OutlinedButton(
+                    onPressed: widget.catalogProvider.loadingMoreVariants ? null
+                      : () => widget.catalogProvider.loadMoreVariants(
+                        widget.businessId, widget.itemId),
+                    child: Text(widget.catalogProvider.loadingMoreVariants
+                      ? 'جاري التحميل...' : 'عرض المزيد من الخيارات'),
+                  );
+                }
                 final v = variants[index];
                 final statusColor = _getStatusColor(v.status);
                 final statusBg = _getStatusBgColor(v.status);
@@ -1118,27 +1311,30 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
+                            Expanded(child: Text(
                               v.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.onSurface,
                               ),
-                            ),
+                            ),),
                             Row(
                               children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: statusBg,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
+                                  constraints: const BoxConstraints(maxWidth: 115),
                                   child: Text(
                                     statusLabel,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
@@ -1147,10 +1343,8 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 18,
-                                  ),
+                                  icon: const Icon(Icons.edit_outlined,
+                                      size: 18),
                                   tooltip: strings('edit_variant'),
                                   onPressed: () => _showEditVariantDialog(v),
                                 ),
@@ -1166,7 +1360,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                             children: v.attributes.entries.map((attr) {
                               return Chip(
                                 label: Text(
-                                  '${attr.key}: ${attr.value}',
+                                  '${specificationName(attr.key, _schema?.definitions ?? <AttributeDefinition>[])}: ${displaySpecification(attr.value)}',
                                   style: const TextStyle(fontSize: 10),
                                 ),
                                 padding: EdgeInsets.zero,
@@ -1182,8 +1376,11 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                 );
               },
             ),
+        ),
+      ]),
     );
   }
+
 
   // ==========================================
   // Tab 3: Offers
@@ -1202,7 +1399,37 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
         icon: const Icon(Icons.add_rounded),
         label: Text(strings('add_offer')),
       ),
-      body: offers.isEmpty
+      body: widget.catalogProvider.isLoadingOffers && offers.isEmpty
+          ? const Center(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 14),
+                Text('جاري تحميل عروض المنتج'),
+              ],
+            ))
+          : widget.catalogProvider.offersError != null && offers.isEmpty
+          ? Center(child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_off_outlined,
+                    color: AppColors.textMuted, size: 40),
+                  const SizedBox(height: 12),
+                  Text(widget.catalogProvider.offersError!,
+                    textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => widget.catalogProvider.refreshOffers(
+                      widget.businessId, widget.itemId),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('إعادة تحميل الأسعار'),
+                  ),
+                ],
+              ),
+            ))
+          : offers.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1228,27 +1455,32 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-              itemCount: offers.length,
+              itemCount: offers.length + (widget.catalogProvider.offersHasMore ? 1 : 0),
               separatorBuilder: (_, index) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
+                if (index == offers.length) {
+                  return OutlinedButton(
+                    onPressed: widget.catalogProvider.loadingMoreOffers ? null
+                      : () => widget.catalogProvider.loadMoreOffers(
+                        widget.businessId, widget.itemId),
+                    child: Text(widget.catalogProvider.loadingMoreOffers
+                      ? 'جاري التحميل...' : 'عرض المزيد من الأسعار'),
+                  );
+                }
                 final offer = offers[index];
                 final statusColor = _getStatusColor(offer.status);
                 final statusBg = _getStatusBgColor(offer.status);
                 final statusLabel = contract.labelOfferStatus(offer.status);
 
-                final availColor = _getAvailabilityColor(
-                  offer.availabilityStatus,
-                );
-                final availLabel = contract.labelAvailabilityStatus(
-                  offer.availabilityStatus,
-                );
+                final availColor =
+                    _getAvailabilityColor(offer.availabilityStatus);
+                final availLabel = contract
+                    .labelAvailabilityStatus(offer.availabilityStatus);
 
-                final priceVerifColor = _getPriceVerificationColor(
-                  offer.priceVerificationStatus,
-                );
-                final priceVerifLabel = contract.labelPriceVerification(
-                  offer.priceVerificationStatus,
-                );
+                final priceVerifColor =
+                    _getPriceVerificationColor(offer.priceVerificationStatus);
+                final priceVerifLabel = contract
+                    .labelPriceVerification(offer.priceVerificationStatus);
 
                 return Card(
                   elevation: 0,
@@ -1268,6 +1500,8 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                             Expanded(
                               child: Text(
                                 offer.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -1279,9 +1513,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                               children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: statusBg,
                                     borderRadius: BorderRadius.circular(10),
@@ -1296,10 +1528,8 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 18,
-                                  ),
+                                  icon: const Icon(Icons.edit_outlined,
+                                      size: 18),
                                   tooltip: strings('edit_offer'),
                                   onPressed: () => _showEditOfferDialog(offer),
                                 ),
@@ -1312,7 +1542,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                           children: [
                             Text(
                               offer.amount != null
-                                  ? '${offer.amount!.toStringAsFixed(2)} ${offer.currency ?? 'SAR'}'
+                                  ? '${offer.amount!.toStringAsFixed(2)} ${offer.currency ?? ''}'
                                   : strings('pricing_mode'),
                               style: const TextStyle(
                                 fontSize: 16,
@@ -1339,9 +1569,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: availColor.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(6),
@@ -1357,9 +1585,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: priceVerifColor.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(6),

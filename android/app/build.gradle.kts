@@ -8,9 +8,17 @@ plugins {
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
+val requireReleaseSignature = System.getenv("MUJEEB_PRODUCTION_RELEASE") == "true"
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(keystorePropertiesFile.inputStream())
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
+val productionSigningReady = listOf("keyAlias", "keyPassword", "storePassword", "storeFile")
+    .all { !keystoreProperties.getProperty(it).isNullOrBlank() } &&
+    keystoreProperties.getProperty("storeFile")?.let { file(it).isFile } == true
+if (requireReleaseSignature && !productionSigningReady) {
+    throw GradleException("Production Android build requires a valid release signing keystore.")
+}
+
 
 android {
     namespace = "com.mujeeb24.mujeeb24_app"
@@ -29,6 +37,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["mujeebAppLabel"] = "مجيب 24 (تجريبي)"
     }
 
     signingConfigs {
@@ -45,11 +54,13 @@ android {
 
     buildTypes {
         release {
-            val releaseConfig = signingConfigs.getByName("release")
-            signingConfig = if (keystorePropertiesFile.exists() && releaseConfig.storeFile != null) {
-                releaseConfig
+            if (requireReleaseSignature) {
+                manifestPlaceholders["mujeebAppLabel"] = "مجيب 24"
+                signingConfig = signingConfigs.getByName("release")
             } else {
-                signingConfigs.getByName("debug")
+                // QA-only: use a distinct package so it cannot replace the live app.
+                applicationIdSuffix = ".preview"
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
     }

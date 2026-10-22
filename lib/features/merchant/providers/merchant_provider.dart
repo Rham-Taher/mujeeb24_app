@@ -24,6 +24,7 @@ class MerchantProvider extends ChangeNotifier {
   bool _isPerformingAction = false;
 
   String? _dashboardError;
+  bool _dashboardRequiresLogin = false;
   String? _businessError;
   String? _policyError;
   String? _conversationsError;
@@ -55,6 +56,7 @@ class MerchantProvider extends ChangeNotifier {
   bool get isPerformingAction => _isPerformingAction;
 
   String? get dashboardError => _dashboardError;
+  bool get dashboardRequiresLogin => _dashboardRequiresLogin;
   String? get businessError => _businessError;
   String? get policyError => _policyError;
   String? get conversationsError => _conversationsError;
@@ -99,15 +101,11 @@ class MerchantProvider extends ChangeNotifier {
       }
 
       if (_conversationOwnershipFilter == 'assigned' &&
-          (c.assignment == null ||
-              c.ownership == 'none' ||
-              c.ownership == 'unassigned')) {
+          (c.assignment == null || c.ownership == 'none' || c.ownership == 'unassigned')) {
         return false;
       }
       if (_conversationOwnershipFilter == 'unassigned' &&
-          (c.assignment != null &&
-              c.ownership != 'none' &&
-              c.ownership != 'unassigned')) {
+          (c.assignment != null && c.ownership != 'none' && c.ownership != 'unassigned')) {
         return false;
       }
 
@@ -117,6 +115,7 @@ class MerchantProvider extends ChangeNotifier {
 
   void clearErrors() {
     _dashboardError = null;
+    _dashboardRequiresLogin = false;
     _businessError = null;
     _policyError = null;
     _conversationsError = null;
@@ -130,20 +129,37 @@ class MerchantProvider extends ChangeNotifier {
   Future<void> loadDashboardOverview(String businessId) async {
     _isLoadingDashboard = true;
     _dashboardError = null;
+    _dashboardRequiresLogin = false;
     notifyListeners();
 
     try {
-      final overview = await merchantRepository.getDashboardOverview(
-        businessId,
-      );
+      final overview = await merchantRepository.getDashboardOverview(businessId);
       _dashboardOverview = overview;
+      _lastRequestId = null;
     } on ApiErrorEnvelope catch (e) {
-      _dashboardError = e.error.message;
+      // Never render stale business metrics after an unauthorized response.
+      _dashboardOverview = null;
       _lastRequestId = e.requestId;
-    } on NetworkException catch (e) {
-      _dashboardError = e.message;
-    } catch (e) {
-      _dashboardError = e.toString();
+      final code = e.error.code.toLowerCase();
+      final serverMessage = e.error.message.toLowerCase();
+      _dashboardRequiresLogin = e.statusCode == 401 ||
+          code.contains('unauthorized') ||
+          code.contains('invalid_token') ||
+          code.contains('token_expired') ||
+          serverMessage.contains('invalid access token');
+      final safeArabicMessage = e.error.message.length <= 160 &&
+          RegExp(r'[ء-ي]').hasMatch(e.error.message);
+      _dashboardError = _dashboardRequiresLogin
+          ? 'انتهت صلاحية جلسة الدخول. سجّل دخولك من جديد.'
+          : safeArabicMessage
+              ? e.error.message
+              : 'تعذر جلب بيانات النشاط حاليًا. حاول مرة أخرى.';
+    } on NetworkException {
+      _dashboardOverview = null;
+      _dashboardError = 'تعذر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.';
+    } catch (_) {
+      _dashboardOverview = null;
+      _dashboardError = 'تعذر تحميل لوحة النشاط. حاول مرة أخرى.';
     } finally {
       _isLoadingDashboard = false;
       notifyListeners();
@@ -330,16 +346,13 @@ class MerchantProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final effectiveState =
-          state ??
+      final effectiveState = state ??
           (_conversationStateFilter != 'all' ? _conversationStateFilter : null);
-      final effectiveOwnership =
-          ownership ??
+      final effectiveOwnership = ownership ??
           (_conversationOwnershipFilter != 'all'
               ? _conversationOwnershipFilter
               : null);
-      final effectiveChannel =
-          channel ??
+      final effectiveChannel = channel ??
           (_conversationChannelFilter != 'all'
               ? _conversationChannelFilter
               : null);

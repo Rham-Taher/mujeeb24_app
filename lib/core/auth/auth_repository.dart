@@ -1,4 +1,5 @@
 import '../api/api_client.dart';
+import '../errors/api_error.dart';
 import '../models/auth_models.dart';
 
 /// Authentication Repository implementing:
@@ -19,6 +20,10 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
+    // A different account's saved refresh cookie must NEVER be inherited
+    // when a new principal explicitly signs in.
+    apiClient.clearSession();
+    await apiClient.flushCookiePersistence();
     final response = await apiClient.post(
       '/auth/login',
       body: {'email': email.trim(), 'password': password},
@@ -28,33 +33,60 @@ class AuthRepository {
     final data = response['data'] as Map<String, dynamic>;
     final authResponse = AuthResponse.fromJson(data);
     apiClient.setAccessToken(authResponse.accessToken);
+    await apiClient.flushCookiePersistence();
     return authResponse;
   }
 
   /// POST /auth/refresh
   Future<AuthResponse> refreshSession() async {
-    final response = await apiClient.post(
-      '/auth/refresh',
-      requiresAuth: false,
-      sendCookie: true,
-    );
-
-    final data = response['data'] as Map<String, dynamic>;
-    final authResponse = AuthResponse.fromJson(data);
-    apiClient.setAccessToken(authResponse.accessToken);
-    return authResponse;
+    try {
+      final response = await apiClient.post(
+        '/auth/refresh',
+        requiresAuth: false,
+        sendCookie: true,
+        timeout: const Duration(seconds: 20),
+      );
+      final data = response['data'] as Map<String, dynamic>;
+      final authResponse = AuthResponse.fromJson(data);
+      apiClient.setAccessToken(authResponse.accessToken);
+      await apiClient.flushCookiePersistence();
+      return authResponse;
+    } on ApiErrorEnvelope catch (e) {
+      // Explicit startup refresh bypasses the normal protected 401 handler.
+      // Erase a revoked or expired rotating token on definitive rejection.
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        apiClient.clearSession();
+        await apiClient.flushCookiePersistence();
+      }
+      rethrow;
+    }
   }
 
-  /// POST /auth/logout
+  /// POST /auth/logout. Clear local secrets immediately after dispatch,
+  /// even when the network hangs or the server rejects the logout.
   Future<void> logout() async {
-    try {
-      await apiClient.post(
-        '/auth/logout',
-        requiresAuth: true,
-        sendCookie: true,
-      );
-    } finally {
+    final hasSession = (apiClient.accessToken?.isNotEmpty ?? false) ||
+        (apiClient.refreshCookie?.isNotEmpty ?? false);
+    if (!hasSession) {
       apiClient.clearSession();
+      return;
+    }
+    final remoteLogout = apiClient.post(
+      '/auth/logout',
+      requiresAuth: true,
+      sendCookie: true,
+      timeout: const Duration(seconds: 10),
+    );
+    apiClient.clearSession();
+    try {
+      await remoteLogout;
+    } on ApiErrorEnvelope catch (error) {
+      // Immediate local logout was already performed before awaiting the server.
+      // A late response cannot revoke the next account's newly created session.
+      if (error.error.code != 'SESSION_CHANGED') rethrow;
+    } finally {
+      // Finish removing the encrypted cookie, even if remote revocation fails.
+      await apiClient.flushCookiePersistence();
     }
   }
 

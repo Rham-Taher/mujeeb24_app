@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -43,44 +42,41 @@ void main() {
       expect(serialized['resource_version'], '3');
     });
 
-    test(
-      'Catalog item parses from and converts to JSON with full enum fields',
-      () {
-        final json = {
-          'id': testItemId,
-          'business_id': testBusinessId,
-          'catalog_id': testCatalogId,
-          'item_type': 'physical_good',
-          'name': 'قهوة مختصة كولومبية',
-          'short_description': 'حبوب قهوة كولومبية فاخرة',
-          'long_description': 'حبوب قهوة كولومبية فاخرة مغسولة ومعالجة بعناية',
-          'status': 'active',
-          'pricing_mode': 'fixed',
-          'availability_mode': 'stock',
-          'fulfillment_mode': 'delivery',
-          'requires_confirmation': false,
-          'attribute_schema_id': testSchemaId,
-          'attribute_schema_version': 1,
-          'attributes': {'roast_level': 'medium', 'weight_g': 250},
-          'resource_version': '2',
-        };
+    test('Catalog item parses from and converts to JSON with full enum fields', () {
+      final json = {
+        'id': testItemId,
+        'business_id': testBusinessId,
+        'catalog_id': testCatalogId,
+        'item_type': 'physical_good',
+        'name': 'قهوة مختصة كولومبية',
+        'short_description': 'حبوب قهوة كولومبية فاخرة',
+        'long_description': 'حبوب قهوة كولومبية فاخرة مغسولة ومعالجة بعناية',
+        'status': 'active',
+        'pricing_mode': 'fixed',
+        'availability_mode': 'stock',
+        'fulfillment_mode': 'delivery',
+        'requires_confirmation': false,
+        'attribute_schema_id': testSchemaId,
+        'attribute_schema_version': 1,
+        'attributes': {'roast_level': 'medium', 'weight_g': 250},
+        'resource_version': '2',
+      };
 
-        final item = CatalogItem.fromJson(json);
-        expect(item.id, testItemId);
-        expect(item.name, 'قهوة مختصة كولومبية');
-        expect(item.pricingMode, 'fixed');
-        expect(item.availabilityMode, 'stock');
-        expect(item.fulfillmentMode, 'delivery');
-        expect(item.attributes['roast_level'], 'medium');
-        expect(item.resourceVersion, '2');
-        expect(item.isActive, isTrue);
+      final item = CatalogItem.fromJson(json);
+      expect(item.id, testItemId);
+      expect(item.name, 'قهوة مختصة كولومبية');
+      expect(item.pricingMode, 'fixed');
+      expect(item.availabilityMode, 'stock');
+      expect(item.fulfillmentMode, 'delivery');
+      expect(item.attributes['roast_level'], 'medium');
+      expect(item.resourceVersion, '2');
+      expect(item.isActive, isTrue);
 
-        final serialized = item.toJson();
-        expect(serialized['name'], 'قهوة مختصة كولومبية');
-        expect(serialized['pricing_mode'], 'fixed');
-        expect(serialized['availability_mode'], 'stock');
-      },
-    );
+      final serialized = item.toJson();
+      expect(serialized['name'], 'قهوة مختصة كولومبية');
+      expect(serialized['pricing_mode'], 'fixed');
+      expect(serialized['availability_mode'], 'stock');
+    });
 
     test('Variant parses from and converts to JSON correctly', () {
       final json = {
@@ -158,7 +154,7 @@ void main() {
             'label': 'الوزن بالجرام',
             'data_type': 'number',
             'required': false,
-          },
+          }
         ],
       };
 
@@ -178,22 +174,10 @@ void main() {
 
     test('CatalogEntityContract returns defaults and translates labels', () {
       final contract = CatalogEntityContract.defaults();
-      expect(
-        contract.labelFor('pricing_mode', 'fixed'),
-        'السعر ثابت ومحدد في العرض',
-      );
-      expect(
-        contract.labelFor('availability_status', 'available'),
-        'متاح حاليًا',
-      );
-      expect(
-        contract.labelFor('availability_status', 'requires_check'),
-        'يتطلب فحصًا إضافيًا',
-      );
-      expect(
-        contract.labelFor('fulfillment_mode', 'delivery'),
-        'تسليم مادي / توصيل وشحن',
-      );
+      expect(contract.labelFor('pricing_mode', 'fixed'), 'السعر ثابت ومحدد في العرض');
+      expect(contract.labelFor('availability_status', 'available'), 'متاح حاليًا');
+      expect(contract.labelFor('availability_status', 'requires_check'), 'يتطلب فحصًا إضافيًا');
+      expect(contract.labelFor('fulfillment_mode', 'delivery'), 'تسليم مادي / توصيل وشحن');
       expect(contract.labelFor('status', 'archived'), 'مؤرشف');
       expect(contract.labelFor('unknown_category', 'some_code'), 'some_code');
     });
@@ -207,7 +191,7 @@ void main() {
             'name': 'كتالوج 1',
             'status': 'active',
             'resource_version': '1',
-          },
+          }
         ],
         'total': 1,
         'limit': 20,
@@ -229,7 +213,7 @@ void main() {
             'availability_mode': 'stock',
             'fulfillment_mode': 'delivery',
             'resource_version': '1',
-          },
+          }
         ],
         'total': 1,
         'limit': 20,
@@ -247,7 +231,7 @@ void main() {
             'name': 'متغير 1',
             'status': 'active',
             'resource_version': '1',
-          },
+          }
         ],
         'total': 1,
         'limit': 20,
@@ -271,7 +255,7 @@ void main() {
             'availability_status': 'available',
             'status': 'active',
             'resource_version': '1',
-          },
+          }
         ],
         'total': 1,
         'limit': 20,
@@ -283,99 +267,84 @@ void main() {
   });
 
   group('Phase 5 Catalog Repository Integration with MockClient', () {
-    test(
-      'listCatalogs sends proper query parameters and parses CatalogPage',
-      () async {
-        final mock = MockClient((request) async {
-          expect(request.method, 'GET');
-          expect(
-            request.url.path,
-            '/api/v1/businesses/$testBusinessId/catalogs',
-          );
-          expect(request.url.queryParameters['status'], 'active');
-          expect(request.url.queryParameters['limit'], '10');
+    test('listCatalogs sends proper query parameters and parses CatalogPage', () async {
+      final mock = MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.path, '/api/v1/businesses/$testBusinessId/catalogs');
+        expect(request.url.queryParameters['status'], 'active');
+        expect(request.url.queryParameters['limit'], '10');
 
-          return http.Response(
-            jsonEncode({
-              'items': [
-                {
-                  'id': testCatalogId,
-                  'business_id': testBusinessId,
-                  'name': 'كتالوج الصيف',
-                  'status': 'active',
-                  'resource_version': '1',
-                },
-              ],
-              'total': 1,
-              'limit': 10,
-              'offset': 0,
-            }),
-            200,
-            headers: {'content-type': 'application/json; charset=utf-8'},
-          );
-        });
-
-        final apiClient = ApiClient(client: mock);
-        final repo = CatalogRepository(apiClient: apiClient);
-
-        final page = await repo.listCatalogs(
-          businessId: testBusinessId,
-          status: 'active',
-          limit: 10,
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': testCatalogId,
+                'business_id': testBusinessId,
+                'name': 'كتالوج الصيف',
+                'status': 'active',
+                'resource_version': '1',
+              }
+            ],
+            'total': 1,
+            'limit': 10,
+            'offset': 0,
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
         );
+      });
 
-        expect(page.items.length, 1);
-        expect(page.items.first.name, 'كتالوج الصيف');
-      },
-    );
+      final apiClient = ApiClient(client: mock);
+      final repo = CatalogRepository(apiClient: apiClient);
 
-    test(
-      'createCatalog sends POST with Idempotency-Key and parses Catalog',
-      () async {
-        final mock = MockClient((request) async {
-          expect(request.method, 'POST');
-          expect(
-            request.url.path,
-            '/api/v1/businesses/$testBusinessId/catalogs',
-          );
-          expect(request.headers.containsKey('Idempotency-Key'), isTrue);
+      final page = await repo.listCatalogs(
+        businessId: testBusinessId,
+        status: 'active',
+        limit: 10,
+      );
 
-          final body = jsonDecode(request.body) as Map<String, dynamic>;
-          expect(body['name'], 'كتالوج جديد');
+      expect(page.items.length, 1);
+      expect(page.items.first.name, 'كتالوج الصيف');
+    });
 
-          return http.Response(
-            jsonEncode({
-              'id': testCatalogId,
-              'business_id': testBusinessId,
-              'name': 'كتالوج جديد',
-              'status': 'draft',
-              'resource_version': '1',
-            }),
-            201,
-            headers: {'content-type': 'application/json; charset=utf-8'},
-          );
-        });
+    test('createCatalog sends POST with Idempotency-Key and parses Catalog', () async {
+      final mock = MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/businesses/$testBusinessId/catalogs');
+        expect(request.headers.containsKey('Idempotency-Key'), isTrue);
 
-        final apiClient = ApiClient(client: mock);
-        final repo = CatalogRepository(apiClient: apiClient);
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['name'], 'كتالوج جديد');
 
-        final catalog = await repo.createCatalog(
-          businessId: testBusinessId,
-          request: const CreateCatalogRequest(name: 'كتالوج جديد'),
+        return http.Response(
+          jsonEncode({
+            'id': testCatalogId,
+            'business_id': testBusinessId,
+            'name': 'كتالوج جديد',
+            'status': 'draft',
+            'resource_version': '1',
+          }),
+          201,
+          headers: {'content-type': 'application/json; charset=utf-8'},
         );
+      });
 
-        expect(catalog.id, testCatalogId);
-        expect(catalog.name, 'كتالوج جديد');
-      },
-    );
+      final apiClient = ApiClient(client: mock);
+      final repo = CatalogRepository(apiClient: apiClient);
+
+      final catalog = await repo.createCatalog(
+        businessId: testBusinessId,
+        request: const CreateCatalogRequest(name: 'كتالوج جديد'),
+      );
+
+      expect(catalog.id, testCatalogId);
+      expect(catalog.name, 'كتالوج جديد');
+    });
 
     test('updateCatalog sends PATCH with If-Match resource_version', () async {
       final mock = MockClient((request) async {
         expect(request.method, 'PATCH');
-        expect(
-          request.url.path,
-          '/api/v1/businesses/$testBusinessId/catalogs/$testCatalogId',
-        );
+        expect(request.url.path, '/api/v1/businesses/$testBusinessId/catalogs/$testCatalogId');
         expect(request.headers['If-Match'], '1');
 
         final body = jsonDecode(request.body) as Map<String, dynamic>;
@@ -402,10 +371,7 @@ void main() {
         businessId: testBusinessId,
         catalogId: testCatalogId,
         ifMatch: '1',
-        request: const UpdateCatalogRequest(
-          name: 'كتالوج معدل',
-          status: 'active',
-        ),
+        request: const UpdateCatalogRequest(name: 'كتالوج معدل', status: 'active'),
       );
 
       expect(catalog.resourceVersion, '2');
@@ -415,10 +381,7 @@ void main() {
     test('getCatalogEntityContract fetches dynamic contract', () async {
       final mock = MockClient((request) async {
         expect(request.method, 'GET');
-        expect(
-          request.url.path,
-          '/api/v1/businesses/$testBusinessId/catalogs/entity-contract',
-        );
+        expect(request.url.path, '/api/v1/businesses/$testBusinessId/catalogs/entity-contract');
 
         return http.Response(
           jsonEncode({
@@ -437,140 +400,129 @@ void main() {
       final apiClient = ApiClient(client: mock);
       final repo = CatalogRepository(apiClient: apiClient);
 
-      final contract = await repo.getCatalogEntityContract(
-        businessId: testBusinessId,
-      );
+      final contract = await repo.getCatalogEntityContract(businessId: testBusinessId);
       expect(contract.labelFor('pricing_mode', 'fixed'), 'سعر ثابت خادم');
       expect(contract.labelFor('pricing_mode', 'dynamic'), 'سعر متغير خادم');
     });
 
-    test(
-      'listCatalogItems sends query parameters and parses CatalogItemPage',
-      () async {
-        final mock = MockClient((request) async {
-          expect(request.method, 'GET');
-          expect(
-            request.url.path,
-            '/api/v1/businesses/$testBusinessId/catalogs/$testCatalogId/items',
-          );
-          expect(request.url.queryParameters['search'], 'ساعة');
-          expect(request.url.queryParameters['status'], 'active');
+    test('listCatalogItems sends query parameters and parses CatalogItemPage', () async {
+      final mock = MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.path, '/api/v1/businesses/$testBusinessId/catalogs/$testCatalogId/items');
+        expect(request.url.queryParameters['search'], 'ساعة');
+        expect(request.url.queryParameters['status'], 'active');
 
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': testItemId,
+                'business_id': testBusinessId,
+                'catalog_id': testCatalogId,
+                'item_type': 'physical_good',
+                'name': 'ساعة ذكية',
+                'pricing_mode': 'fixed',
+                'availability_mode': 'stock',
+                'fulfillment_mode': 'pickup',
+                'status': 'active',
+                'resource_version': '1',
+              }
+            ],
+            'total': 1,
+            'limit': 20,
+            'offset': 0,
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final apiClient = ApiClient(client: mock);
+      final repo = CatalogRepository(apiClient: apiClient);
+
+      final page = await repo.listCatalogItems(
+        businessId: testBusinessId,
+        catalogId: testCatalogId,
+        search: 'ساعة',
+        status: 'active',
+      );
+
+      expect(page.items.length, 1);
+      expect(page.items.first.name, 'ساعة ذكية');
+      expect(page.items.first.fulfillmentMode, 'pickup');
+    });
+
+    test('createCatalogItem and updateCatalogItem handle optimistic concurrency', () async {
+      final mock = MockClient((request) async {
+        if (request.method == 'POST') {
+          expect(request.headers.containsKey('Idempotency-Key'), isTrue);
           return http.Response(
             jsonEncode({
-              'items': [
-                {
-                  'id': testItemId,
-                  'business_id': testBusinessId,
-                  'catalog_id': testCatalogId,
-                  'item_type': 'physical_good',
-                  'name': 'ساعة ذكية',
-                  'pricing_mode': 'fixed',
-                  'availability_mode': 'stock',
-                  'fulfillment_mode': 'pickup',
-                  'status': 'active',
-                  'resource_version': '1',
-                },
-              ],
-              'total': 1,
-              'limit': 20,
-              'offset': 0,
+              'id': testItemId,
+              'business_id': testBusinessId,
+              'catalog_id': testCatalogId,
+              'item_type': 'service',
+              'name': 'منتج جديد',
+              'pricing_mode': 'starting_from',
+              'availability_mode': 'schedule',
+              'fulfillment_mode': 'appointment',
+              'status': 'draft',
+              'resource_version': '1',
+            }),
+            201,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        } else if (request.method == 'PATCH') {
+          expect(request.headers['If-Match'], '1');
+          return http.Response(
+            jsonEncode({
+              'id': testItemId,
+              'business_id': testBusinessId,
+              'catalog_id': testCatalogId,
+              'item_type': 'service',
+              'name': 'منتج معدل',
+              'pricing_mode': 'starting_from',
+              'availability_mode': 'schedule',
+              'fulfillment_mode': 'appointment',
+              'status': 'active',
+              'resource_version': '2',
             }),
             200,
             headers: {'content-type': 'application/json; charset=utf-8'},
           );
-        });
+        }
+        return http.Response('Not Found', 404);
+      });
 
-        final apiClient = ApiClient(client: mock);
-        final repo = CatalogRepository(apiClient: apiClient);
+      final apiClient = ApiClient(client: mock);
+      final repo = CatalogRepository(apiClient: apiClient);
 
-        final page = await repo.listCatalogItems(
-          businessId: testBusinessId,
-          catalogId: testCatalogId,
-          search: 'ساعة',
+      final created = await repo.createCatalogItem(
+        businessId: testBusinessId,
+        catalogId: testCatalogId,
+        request: const CreateCatalogItemRequest(
+          name: 'منتج جديد',
+          itemType: 'service',
+          pricingMode: 'starting_from',
+          availabilityMode: 'schedule',
+          fulfillmentMode: 'appointment',
+        ),
+      );
+      expect(created.resourceVersion, '1');
+
+      final updated = await repo.updateCatalogItem(
+        businessId: testBusinessId,
+        catalogId: testCatalogId,
+        itemId: testItemId,
+        ifMatch: '1',
+        request: const UpdateCatalogItemRequest(
+          name: 'منتج معدل',
           status: 'active',
-        );
-
-        expect(page.items.length, 1);
-        expect(page.items.first.name, 'ساعة ذكية');
-        expect(page.items.first.fulfillmentMode, 'pickup');
-      },
-    );
-
-    test(
-      'createCatalogItem and updateCatalogItem handle optimistic concurrency',
-      () async {
-        final mock = MockClient((request) async {
-          if (request.method == 'POST') {
-            expect(request.headers.containsKey('Idempotency-Key'), isTrue);
-            return http.Response(
-              jsonEncode({
-                'id': testItemId,
-                'business_id': testBusinessId,
-                'catalog_id': testCatalogId,
-                'item_type': 'service',
-                'name': 'منتج جديد',
-                'pricing_mode': 'starting_from',
-                'availability_mode': 'schedule',
-                'fulfillment_mode': 'appointment',
-                'status': 'draft',
-                'resource_version': '1',
-              }),
-              201,
-              headers: {'content-type': 'application/json; charset=utf-8'},
-            );
-          } else if (request.method == 'PATCH') {
-            expect(request.headers['If-Match'], '1');
-            return http.Response(
-              jsonEncode({
-                'id': testItemId,
-                'business_id': testBusinessId,
-                'catalog_id': testCatalogId,
-                'item_type': 'service',
-                'name': 'منتج معدل',
-                'pricing_mode': 'starting_from',
-                'availability_mode': 'schedule',
-                'fulfillment_mode': 'appointment',
-                'status': 'active',
-                'resource_version': '2',
-              }),
-              200,
-              headers: {'content-type': 'application/json; charset=utf-8'},
-            );
-          }
-          return http.Response('Not Found', 404);
-        });
-
-        final apiClient = ApiClient(client: mock);
-        final repo = CatalogRepository(apiClient: apiClient);
-
-        final created = await repo.createCatalogItem(
-          businessId: testBusinessId,
-          catalogId: testCatalogId,
-          request: const CreateCatalogItemRequest(
-            name: 'منتج جديد',
-            itemType: 'service',
-            pricingMode: 'starting_from',
-            availabilityMode: 'schedule',
-            fulfillmentMode: 'appointment',
-          ),
-        );
-        expect(created.resourceVersion, '1');
-
-        final updated = await repo.updateCatalogItem(
-          businessId: testBusinessId,
-          catalogId: testCatalogId,
-          itemId: testItemId,
-          ifMatch: '1',
-          request: const UpdateCatalogItemRequest(
-            name: 'منتج معدل',
-            status: 'active',
-          ),
-        );
-        expect(updated.resourceVersion, '2');
-        expect(updated.name, 'منتج معدل');
-      },
-    );
+        ),
+      );
+      expect(updated.resourceVersion, '2');
+      expect(updated.name, 'منتج معدل');
+    });
 
     test('listVariants, createVariant, updateVariant endpoints work properly', () async {
       final mock = MockClient((request) async {
@@ -585,7 +537,7 @@ void main() {
                   'name': 'مقاس كبير',
                   'status': 'active',
                   'resource_version': '1',
-                },
+                }
               ],
               'total': 1,
             }),
@@ -593,10 +545,7 @@ void main() {
             headers: {'content-type': 'application/json; charset=utf-8'},
           );
         } else if (request.method == 'POST') {
-          expect(
-            request.url.path,
-            '/api/v1/businesses/$testBusinessId/catalog-items/$testItemId/variants',
-          );
+          expect(request.url.path, '/api/v1/businesses/$testBusinessId/catalog-items/$testItemId/variants');
           expect(request.headers.containsKey('Idempotency-Key'), isTrue);
           return http.Response(
             jsonEncode({
@@ -611,10 +560,7 @@ void main() {
             headers: {'content-type': 'application/json; charset=utf-8'},
           );
         } else if (request.method == 'PATCH') {
-          expect(
-            request.url.path,
-            '/api/v1/businesses/$testBusinessId/variants/$testVariantId',
-          );
+          expect(request.url.path, '/api/v1/businesses/$testBusinessId/variants/$testVariantId');
           expect(request.headers['If-Match'], '1');
           return http.Response(
             jsonEncode({
@@ -635,10 +581,7 @@ void main() {
       final apiClient = ApiClient(client: mock);
       final repo = CatalogRepository(apiClient: apiClient);
 
-      final vars = await repo.listVariants(
-        businessId: testBusinessId,
-        itemId: testItemId,
-      );
+      final vars = await repo.listVariants(businessId: testBusinessId, itemId: testItemId);
       expect(vars.items.length, 1);
 
       final createdVar = await repo.createVariant(
@@ -652,10 +595,7 @@ void main() {
         businessId: testBusinessId,
         variantId: testVariantId,
         ifMatch: '1',
-        request: const UpdateVariantRequest(
-          name: 'مقاس صغير محدث',
-          status: 'inactive',
-        ),
+        request: const UpdateVariantRequest(name: 'مقاس صغير محدث', status: 'inactive'),
       );
       expect(updatedVar.resourceVersion, '2');
       expect(updatedVar.status, 'inactive');
@@ -680,7 +620,7 @@ void main() {
                   'availability_status': 'available',
                   'status': 'active',
                   'resource_version': '1',
-                },
+                }
               ],
               'total': 1,
             }),
@@ -688,10 +628,7 @@ void main() {
             headers: {'content-type': 'application/json; charset=utf-8'},
           );
         } else if (request.method == 'POST') {
-          expect(
-            request.url.path,
-            '/api/v1/businesses/$testBusinessId/catalog-items/$testItemId/offers',
-          );
+          expect(request.url.path, '/api/v1/businesses/$testBusinessId/catalog-items/$testItemId/offers');
           expect(request.headers.containsKey('Idempotency-Key'), isTrue);
           return http.Response(
             jsonEncode({
@@ -712,10 +649,7 @@ void main() {
             headers: {'content-type': 'application/json; charset=utf-8'},
           );
         } else if (request.method == 'PATCH') {
-          expect(
-            request.url.path,
-            '/api/v1/businesses/$testBusinessId/offers/$testOfferId',
-          );
+          expect(request.url.path, '/api/v1/businesses/$testBusinessId/offers/$testOfferId');
           expect(request.headers['If-Match'], '1');
           return http.Response(
             jsonEncode({
@@ -742,10 +676,7 @@ void main() {
       final apiClient = ApiClient(client: mock);
       final repo = CatalogRepository(apiClient: apiClient);
 
-      final offers = await repo.listOffers(
-        businessId: testBusinessId,
-        itemId: testItemId,
-      );
+      final offers = await repo.listOffers(businessId: testBusinessId, itemId: testItemId);
       expect(offers.items.length, 1);
 
       final createdOff = await repo.createOffer(
@@ -767,82 +698,103 @@ void main() {
         businessId: testBusinessId,
         offerId: testOfferId,
         ifMatch: '1',
-        request: const UpdateOfferRequest(
-          name: 'عرض خاص مفعل',
-          amount: 75.0,
-          status: 'active',
-        ),
+        request: const UpdateOfferRequest(name: 'عرض خاص مفعل', amount: 75.0, status: 'active'),
       );
       expect(updatedOff.resourceVersion, '2');
       expect(updatedOff.amount, 75.0);
     });
 
-    test(
-      'listAttributeSchemas and getAttributeSchema return definitions',
-      () async {
-        final mock = MockClient((request) async {
-          if (request.url.path.endsWith('/attribute-schemas')) {
-            return http.Response(
-              jsonEncode({
-                'items': [
-                  {
-                    'id': testSchemaId,
-                    'business_id': testBusinessId,
-                    'name': 'مخطط الملابس',
-                    'item_type': 'physical_good',
-                    'version': 1,
-                    'status': 'active',
-                    'created_at': '2026-01-01T00:00:00Z',
-                    'definitions': [],
-                  },
-                ],
-              }),
-              200,
-              headers: {'content-type': 'application/json; charset=utf-8'},
-            );
-          } else {
-            return http.Response(
-              jsonEncode({
-                'id': testSchemaId,
-                'business_id': testBusinessId,
-                'name': 'مخطط الملابس',
-                'item_type': 'physical_good',
-                'version': 1,
-                'status': 'active',
-                'created_at': '2026-01-01T00:00:00Z',
-                'definitions': [
-                  {
-                    'id': 'def_size',
-                    'key': 'size',
-                    'label': 'المقاس',
-                    'data_type': 'text',
-                    'required': true,
-                  },
-                ],
-              }),
-              200,
-              headers: {'content-type': 'application/json; charset=utf-8'},
-            );
-          }
-        });
+    test('listAttributeSchemas and getAttributeSchema return definitions', () async {
+      final mock = MockClient((request) async {
+        if (request.url.path.endsWith('/attribute-schemas')) {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': testSchemaId,
+                  'business_id': testBusinessId,
+                  'name': 'مخطط الملابس',
+                  'item_type': 'physical_good',
+                  'version': 1,
+                  'status': 'active',
+                  'created_at': '2026-01-01T00:00:00Z',
+                  'definitions': [],
+                }
+              ]
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        } else {
+          return http.Response(
+            jsonEncode({
+              'id': testSchemaId,
+              'business_id': testBusinessId,
+              'name': 'مخطط الملابس',
+              'item_type': 'physical_good',
+              'version': 1,
+              'status': 'active',
+              'created_at': '2026-01-01T00:00:00Z',
+              'definitions': [
+                {
+                  'id': 'def_size',
+                  'key': 'size',
+                  'label': 'المقاس',
+                  'data_type': 'text',
+                  'required': true,
+                }
+              ],
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }
+      });
 
-        final apiClient = ApiClient(client: mock);
-        final repo = CatalogRepository(apiClient: apiClient);
+      final apiClient = ApiClient(client: mock);
+      final repo = CatalogRepository(apiClient: apiClient);
 
-        final schemas = await repo.listAttributeSchemas(
-          businessId: testBusinessId,
-        );
-        expect(schemas.length, 1);
-        expect(schemas.first.name, 'مخطط الملابس');
+      final schemas = await repo.listAttributeSchemas(businessId: testBusinessId);
+      expect(schemas.length, 1);
+      expect(schemas.first.name, 'مخطط الملابس');
 
-        final detail = await repo.getAttributeSchema(
-          businessId: testBusinessId,
-          schemaId: testSchemaId,
-        );
-        expect(detail.definitions.length, 1);
-        expect(detail.definitions.first.key, 'size');
-      },
-    );
+      final detail = await repo.getAttributeSchema(businessId: testBusinessId, schemaId: testSchemaId);
+      expect(detail.definitions.length, 1);
+      expect(detail.definitions.first.key, 'size');
+    });
+
+    test('listAttributeSchemas loads cursor pages without omitting later Arabic templates', () async {
+      var requests = 0;
+      final mock = MockClient((request) async {
+        requests++;
+        expect(request.url.path,
+          '/api/v1/businesses/$testBusinessId/attribute-schemas');
+        expect(request.url.queryParameters['limit'], '50');
+        final cursor = request.url.queryParameters['cursor'];
+        final firstPage = cursor == null;
+        if (!firstPage) expect(cursor, 'next-templates');
+        return http.Response(jsonEncode({
+          'items': [
+            {
+              'id': firstPage ? 'schema-one' : 'schema-two',
+              'business_id': testBusinessId,
+              'name': firstPage ? 'مواصفات الملابس' : 'مواصفات الهواتف',
+              'version': 1,
+              'definitions': [],
+            }
+          ],
+          'pagination': {
+            'has_more': firstPage,
+            'next_cursor': firstPage ? 'next-templates' : null,
+          },
+        }), 200, headers: {'content-type': 'application/json'});
+      });
+      final repo = CatalogRepository(apiClient: ApiClient(client: mock));
+      final templates = await repo.listAttributeSchemas(businessId: testBusinessId);
+      expect(templates.map((schema) => schema.name),
+        ['مواصفات الملابس', 'مواصفات الهواتف']);
+      expect(requests, 2);
+    });
 
     test('throws ApiErrorEnvelope on HTTP 412 Precondition Failed during concurrent update', () async {
       final mock = MockClient((request) async {
@@ -870,13 +822,7 @@ void main() {
           ifMatch: '1',
           request: const UpdateCatalogRequest(name: 'تعديل ملغي'),
         ),
-        throwsA(
-          isA<ApiErrorEnvelope>().having(
-            (e) => e.statusCode,
-            'statusCode',
-            412,
-          ),
-        ),
+        throwsA(isA<ApiErrorEnvelope>().having((e) => e.statusCode, 'statusCode', 412)),
       );
     });
   });

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 /// Design tokens derived from Stitch Mujeeb 24 Mobile Design System
 class AppColors {
-  static const Color primary = Color(0xFF005BB3);
+  static const Color primary = Color(0xFF087FF5);
   static const Color primaryContainer = Color(0xFF0073E0);
   static const Color onPrimary = Color(0xFFFFFFFF);
   static const Color onPrimaryContainer = Color(0xFFFEFCFF);
   static const Color primaryFixed = Color(0xFFD6E3FF);
 
-  static const Color secondary = Color(0xFF395AAF);
+  static const Color secondary = Color(0xFF18B8F2);
   static const Color secondaryFixed = Color(0xFFDBE1FF);
   static const Color onSecondaryFixed = Color(0xFF001849);
 
@@ -79,7 +79,6 @@ class AppTheme {
         outlineVariant: AppColors.outlineVariant,
       ),
       scaffoldBackgroundColor: AppColors.background,
-      fontFamily: 'Roboto',
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surfaceCanvas,
         foregroundColor: AppColors.onSurface,

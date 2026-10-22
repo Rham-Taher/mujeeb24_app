@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:mujeeb24_app/core/errors/api_error.dart';
+import 'package:mujeeb24_app/core/team/team_invitation_presentation.dart';
 import 'package:mujeeb24_app/core/models/auth_models.dart';
 import 'package:mujeeb24_app/core/auth/auth_repository.dart';
 import 'package:mujeeb24_app/core/auth/workspace_repository.dart';
@@ -137,6 +138,20 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Server revoked or rejected our refresh session. Shared API client
+  /// already erased the stale credentials; never keep workspace privileges.
+  void markSessionExpired() {
+    if (_status == AuthStatus.unauthenticated ||
+        _status == AuthStatus.sessionExpired) return;
+    _status = AuthStatus.sessionExpired;
+    _currentPrincipal = null;
+    _authResponse = null;
+    _accessibleBusinesses = [];
+    _selectedBusiness = null;
+    _errorMessage = 'انتهت صلاحية الجلسة. سجّل الدخول مجددًا.';
+    notifyListeners();
+  }
+
   /// Refresh session
   Future<bool> refreshSession() async {
     try {
@@ -146,31 +161,38 @@ class AuthProvider extends ChangeNotifier {
       _status = AuthStatus.authenticated;
       notifyListeners();
       return true;
-    } catch (e) {
-      _status = AuthStatus.sessionExpired;
+    } on ApiErrorEnvelope catch (error) {
+      if (error.statusCode == 401 || error.statusCode == 403) {
+        authRepository.apiClient.clearSession();
+        markSessionExpired();
+      } else {
+        _errorMessage = 'تعذر تجديد الجلسة مؤقتًا. أعد المحاولة.';
+        notifyListeners();
+      }
+      return false;
+    } catch (_) {
+      // A timeout is not evidence of refresh-token revocation.
+      _errorMessage = 'تعذر الاتصال بالخادم لتجديد الجلسة.';
       notifyListeners();
       return false;
     }
   }
 
-  /// Logout and reset state
+  /// Explicit logout: hide the private workspace immediately.
   Future<void> logout() async {
-    _isLoading = true;
+    _status = AuthStatus.unauthenticated;
+    _currentPrincipal = null;
+    _authResponse = null;
+    _accessibleBusinesses = [];
+    _selectedBusiness = null;
+    _errorMessage = null;
+    _lastRequestId = null;
+    _isLoading = false;
     notifyListeners();
-
     try {
       await authRepository.logout();
     } catch (_) {
-      // Always clear local session even if server request fails
-    } finally {
-      _status = AuthStatus.unauthenticated;
-      _currentPrincipal = null;
-      _authResponse = null;
-      _accessibleBusinesses = [];
-      _selectedBusiness = null;
-      _errorMessage = null;
-      _isLoading = false;
-      notifyListeners();
+      // The repository clears credentials even if server revocation fails.
     }
   }
 
@@ -188,13 +210,13 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return invitation;
     } on ApiErrorEnvelope catch (e) {
-      _errorMessage = e.error.message;
+      _errorMessage = invitationErrorMessage(e, resend: false);
       _lastRequestId = e.requestId;
       _isLoading = false;
       notifyListeners();
       return null;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = 'تعذر إكمال الدعوة. تحقق من الاتصال وحاول مرة أخرى.';
       _isLoading = false;
       notifyListeners();
       return null;
@@ -221,13 +243,13 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiErrorEnvelope catch (e) {
-      _errorMessage = e.error.message;
+      _errorMessage = invitationErrorMessage(e, resend: false);
       _lastRequestId = e.requestId;
       _isLoading = false;
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = 'تعذر إكمال الدعوة. تحقق من الاتصال وحاول مرة أخرى.';
       _isLoading = false;
       notifyListeners();
       return false;
@@ -247,13 +269,13 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiErrorEnvelope catch (e) {
-      _errorMessage = e.error.message;
+      _errorMessage = invitationErrorMessage(e, resend: false);
       _lastRequestId = e.requestId;
       _isLoading = false;
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = 'تعذر إكمال الدعوة. تحقق من الاتصال وحاول مرة أخرى.';
       _isLoading = false;
       notifyListeners();
       return false;

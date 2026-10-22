@@ -137,6 +137,7 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
         builder: (context) => CatalogsScreen(
           catalogProvider: widget.catalogProvider!,
           businessId: business.id,
+          businessCurrency: business.defaultCurrency,
         ),
       ),
     );
@@ -236,9 +237,9 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
             ? _openChannels
             : null,
         onNavigateToTeam: widget.teamAuditProvider != null ? _openTeam : null,
-        onNavigateToAuditLogs: widget.teamAuditProvider != null
-            ? _openAuditLogs
-            : null,
+        onNavigateToAuditLogs:
+            widget.teamAuditProvider != null ? _openAuditLogs : null,
+        onSessionExpired: widget.onLogout,
       ),
       InboxTab(
         merchantProvider: widget.merchantProvider,
@@ -262,14 +263,12 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
         onLogout: widget.onLogout,
         onToggleLanguage: () => widget.localeProvider.toggleLocale(),
         onNavigateToTeam: widget.teamAuditProvider != null ? _openTeam : null,
-        onNavigateToAuditLogs: widget.teamAuditProvider != null
-            ? _openAuditLogs
-            : null,
+        onNavigateToAuditLogs:
+            widget.teamAuditProvider != null ? _openAuditLogs : null,
         onNavigateToPlatform:
-            (widget.authProvider.isPlatformAdmin &&
-                widget.platformProvider != null)
-            ? _openPlatform
-            : null,
+            (widget.authProvider.isPlatformAdmin && widget.platformProvider != null)
+                ? _openPlatform
+                : null,
       ),
     ];
 
@@ -300,59 +299,98 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 16,
         title: Text(
           business?.name ?? strings('app_name'),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
         ),
         actions: [
-          if (widget.authProvider.accessibleBusinesses.length > 1)
-            IconButton(
-              icon: const Icon(Icons.swap_horiz_rounded),
-              tooltip: strings('select_business'),
-              onPressed: widget.onSwitchBusiness,
-            ),
-          if (widget.transactionProvider != null)
-            IconButton(
-              icon: const Icon(Icons.receipt_long_rounded),
-              tooltip: strings('transactions_title'),
-              onPressed: () => _openTransactions(null),
-            ),
           if (widget.catalogProvider != null)
             IconButton(
-              icon: const Icon(Icons.inventory_2_rounded),
               tooltip: strings('catalogs_title'),
               onPressed: _openCatalogs,
+              icon: const Icon(Icons.inventory_2_outlined),
             ),
-          if (widget.channelAutomationProvider != null)
-            IconButton(
-              icon: const Icon(Icons.hub_rounded),
-              tooltip: strings('channels_title'),
-              onPressed: _openChannels,
-            ),
-          if (widget.teamAuditProvider != null)
-            IconButton(
-              key: const Key('btn_appbar_team'),
-              icon: const Icon(Icons.groups_rounded),
-              tooltip: strings('team_and_audit'),
-              onPressed: _openTeam,
-            ),
-          if (widget.authProvider.isPlatformAdmin &&
-              widget.platformProvider != null)
-            IconButton(
-              key: const Key('btn_appbar_platform'),
-              icon: const Icon(Icons.admin_panel_settings_rounded),
-              tooltip: strings('platform_title'),
-              onPressed: _openPlatform,
-            ),
-          IconButton(
-            icon: const Icon(Icons.language_rounded),
-            tooltip: strings('switch_language'),
-            onPressed: () => widget.localeProvider.toggleLocale(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: strings('logout'),
-            onPressed: widget.onLogout,
+          PopupMenuButton<String>(
+            key: const Key('merchant_more_actions'),
+            tooltip: 'المزيد من أدوات النشاط',
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (value) {
+              switch (value) {
+                case 'business':
+                  widget.onSwitchBusiness();
+                case 'transactions':
+                  _openTransactions(null);
+                case 'catalogs':
+                  _openCatalogs();
+                case 'channels':
+                  _openChannels();
+                case 'team':
+                  _openTeam();
+                case 'platform':
+                  _openPlatform();
+                case 'language':
+                  widget.localeProvider.toggleLocale();
+                case 'logout':
+                  widget.onLogout();
+              }
+            },
+            itemBuilder: (context) => [
+              if (widget.authProvider.accessibleBusinesses.length > 1)
+                PopupMenuItem(value: 'business',
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.swap_horiz_rounded),
+                    title: Text(strings('select_business')))),
+              if (widget.transactionProvider != null)
+                PopupMenuItem(value: 'transactions',
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.receipt_long_outlined),
+                    title: Text(strings('transactions_title')))),
+              if (widget.catalogProvider != null)
+                PopupMenuItem(value: 'catalogs',
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.inventory_2_outlined),
+                    title: Text(strings('catalogs_title')))),
+              if (widget.channelAutomationProvider != null)
+                PopupMenuItem(value: 'channels',
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.hub_outlined),
+                    title: Text(strings('channels_title')))),
+              if (widget.teamAuditProvider != null)
+                PopupMenuItem(
+                  value: 'team',
+                  key: const Key('btn_appbar_team'),
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.groups_outlined),
+                    title: Text(strings('team_and_audit')))),
+              if (widget.authProvider.isPlatformAdmin &&
+                  widget.platformProvider != null)
+                PopupMenuItem(
+                  value: 'platform',
+                  key: const Key('btn_appbar_platform'),
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.admin_panel_settings_outlined),
+                    title: Text(strings('platform_title')))),
+              PopupMenuItem(value: 'language',
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.language_rounded),
+                  title: Text(strings('switch_language')))),
+              const PopupMenuDivider(),
+              PopupMenuItem(value: 'logout',
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.logout_rounded),
+                  title: Text(strings('logout')))),
+            ],
           ),
         ],
       ),

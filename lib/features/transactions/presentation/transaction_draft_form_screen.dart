@@ -86,7 +86,9 @@ class _TransactionDraftFormScreenState
     _leadIdController = TextEditingController(
       text: tx?.leadId ?? widget.initialLeadId ?? '',
     );
-    _currencyController = TextEditingController(text: tx?.currency ?? 'SAR');
+    _currencyController = TextEditingController(
+      text: tx?.currency ?? 'SAR',
+    );
 
     if (tx != null && tx.transactionType.isNotEmpty) {
       _selectedTransactionType = tx.transactionType;
@@ -129,7 +131,9 @@ class _TransactionDraftFormScreenState
     if (_lineControllers.length <= 1) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppStrings.get('at_least_one_line_required', context)),
+          content: Text(
+            AppStrings.get('at_least_one_line_required', context),
+          ),
           backgroundColor: AppColors.statusError,
         ),
       );
@@ -211,10 +215,13 @@ class _TransactionDraftFormScreenState
       );
       Navigator.of(context).pop(result);
     } else {
-      final err =
-          widget.transactionProvider.actionError ?? strings('request_failed');
+      final err = widget.transactionProvider.actionError ??
+          strings('request_failed');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err), backgroundColor: AppColors.statusError),
+        SnackBar(
+          content: Text(err),
+          backgroundColor: AppColors.statusError,
+        ),
       );
     }
   }
@@ -227,9 +234,7 @@ class _TransactionDraftFormScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _isEditing
-              ? strings('edit_draft')
-              : strings('create_draft_transaction'),
+          _isEditing ? strings('edit_draft') : strings('create_draft_transaction'),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
@@ -306,13 +311,25 @@ class _TransactionDraftFormScreenState
                   value: 'quote',
                   child: Text(strings('tx_type_quote')),
                 ),
-                DropdownMenuItem(
-                  value: 'invoice',
-                  child: Text(strings('tx_type_invoice')),
+                const DropdownMenuItem(
+                  value: 'booking',
+                  child: Text('حجز'),
                 ),
-                DropdownMenuItem(
-                  value: 'sale',
-                  child: Text(strings('tx_type_sale')),
+                const DropdownMenuItem(
+                  value: 'appointment',
+                  child: Text('موعد'),
+                ),
+                const DropdownMenuItem(
+                  value: 'service_request',
+                  child: Text('طلب خدمة'),
+                ),
+                const DropdownMenuItem(
+                  value: 'reservation',
+                  child: Text('حجز مورد'),
+                ),
+                const DropdownMenuItem(
+                  value: 'subscription',
+                  child: Text('اشتراك'),
                 ),
               ],
               onChanged: _isEditing || isBusy
@@ -416,9 +433,7 @@ class _TransactionDraftFormScreenState
                                 color: AppColors.statusError,
                               ),
                               tooltip: strings('remove_line'),
-                              onPressed: isBusy
-                                  ? null
-                                  : () => _removeLine(index),
+                              onPressed: isBusy ? null : () => _removeLine(index),
                             ),
                         ],
                       ),
@@ -448,8 +463,8 @@ class _TransactionDraftFormScreenState
                               enabled: !isBusy,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                                decimal: true,
+                              ),
                               decoration: InputDecoration(
                                 labelText: '${strings('quantity')} *',
                                 hintText: '1.0',
@@ -525,9 +540,7 @@ class _TransactionDraftFormScreenState
                         ),
                       )
                     : Text(
-                        _isEditing
-                            ? strings('edit_draft')
-                            : strings('create_draft_transaction'),
+                        _isEditing ? strings('edit_draft') : strings('create_draft_transaction'),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

@@ -30,12 +30,14 @@ class FakeAuthProvider extends AuthProvider {
   final bool _isAdmin;
   final BusinessMembership? selectedBiz;
 
-  FakeAuthProvider({bool isPlatformAdmin = false, this.selectedBiz})
-    : _isAdmin = isPlatformAdmin,
-      super(
-        authRepository: FakeAuthRepository(),
-        workspaceRepository: FakeWorkspaceRepository(),
-      );
+  FakeAuthProvider({
+    bool isPlatformAdmin = false,
+    this.selectedBiz,
+  })  : _isAdmin = isPlatformAdmin,
+        super(
+          authRepository: FakeAuthRepository(),
+          workspaceRepository: FakeWorkspaceRepository(),
+        );
 
   @override
   bool get isPlatformAdmin => _isAdmin;
@@ -310,14 +312,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify Access Denied screen
-      expect(
-        find.byKey(const Key('btn_back_to_workspace_denied')),
-        findsOneWidget,
-      );
-      expect(
-        find.text('غير مصرح بالدخول'),
-        findsNWidgets(2),
-      ); // AppBar + Body Header
+      expect(find.byKey(const Key('btn_back_to_workspace_denied')), findsOneWidget);
+      expect(find.text('غير مصرح بالدخول'), findsNWidgets(2)); // AppBar + Body Header
 
       // Tap back button
       await tester.tap(find.byKey(const Key('btn_back_to_workspace_denied')));
@@ -360,43 +356,39 @@ void main() {
       expect(find.textContaining('alufuq-corp'), findsOneWidget);
     });
 
-    testWidgets(
-      'switching tabs loads AI overview, kill switch, and health check',
-      (tester) async {
-        _setDesktopSize(tester);
-        final fakeAuth = FakeAuthProvider(isPlatformAdmin: true);
-        final fakeRepo = FakePlatformRepository();
-        final platformProvider = PlatformProvider(repository: fakeRepo);
+    testWidgets('switching tabs loads AI overview, kill switch, and health check', (
+      tester,
+    ) async {
+      _setDesktopSize(tester);
+      final fakeAuth = FakeAuthProvider(isPlatformAdmin: true);
+      final fakeRepo = FakePlatformRepository();
+      final platformProvider = PlatformProvider(repository: fakeRepo);
 
-        await tester.pumpWidget(
-          _wrapWithApp(
-            PlatformHubScreen(
-              provider: platformProvider,
-              authProvider: fakeAuth,
-              onBackToWorkspace: () {},
-            ),
+      await tester.pumpWidget(
+        _wrapWithApp(
+          PlatformHubScreen(
+            provider: platformProvider,
+            authProvider: fakeAuth,
+            onBackToWorkspace: () {},
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Tap AI Tab
-        await tester.tap(find.byKey(const Key('tab_plat_ai')));
-        await tester.pumpAndSettle();
+      // Tap AI Tab
+      await tester.tap(find.byKey(const Key('tab_plat_ai')));
+      await tester.pumpAndSettle();
 
-        // Verify AI Kill Switch card is displayed
-        expect(
-          find.byKey(const Key('btn_ai_kill_switch_disable')),
-          findsOneWidget,
-        );
-        expect(find.byKey(const Key('btn_run_ai_health')), findsOneWidget);
+      // Verify AI Kill Switch card is displayed
+      expect(find.byKey(const Key('btn_ai_kill_switch_disable')), findsOneWidget);
+      expect(find.byKey(const Key('btn_run_ai_health')), findsOneWidget);
 
-        // Tap Run AI Health Check button
-        await tester.tap(find.byKey(const Key('btn_run_ai_health')));
-        await tester.pumpAndSettle();
+      // Tap Run AI Health Check button
+      await tester.tap(find.byKey(const Key('btn_run_ai_health')));
+      await tester.pumpAndSettle();
 
-        expect(fakeRepo.healthCheckTriggered, true);
-      },
-    );
+      expect(fakeRepo.healthCheckTriggered, true);
+    });
 
     testWidgets('switching to Plans tab renders plan list and status', (
       tester,
@@ -453,144 +445,141 @@ void main() {
   });
 
   group('Phase 8 Widget Tests: Navigation from Settings & Home', () {
-    testWidgets(
-      'BusinessSettingsTab renders Platform tile only when onNavigateToPlatform is provided',
-      (tester) async {
-        _setDesktopSize(tester);
-        bool navCalled = false;
-        final merchantProvider = MerchantProvider(
-          merchantRepository: FakeMerchantRepository(),
-        );
+    testWidgets('BusinessSettingsTab renders Platform tile only when onNavigateToPlatform is provided', (
+      tester,
+    ) async {
+      _setDesktopSize(tester);
+      bool navCalled = false;
+      final merchantProvider = MerchantProvider(
+        merchantRepository: FakeMerchantRepository(),
+      );
 
-        // 1. Without callback (regular merchant): tile should NOT appear
-        await tester.pumpWidget(
-          _wrapWithApp(
-            Scaffold(
-              body: BusinessSettingsTab(
-                merchantProvider: merchantProvider,
-                currentBusiness: null,
-                onSwitchBusiness: () {},
-                onLogout: () {},
-                onToggleLanguage: () {},
-                onNavigateToPlatform: null,
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        expect(
-          find.byKey(const Key('tile_platform_administration')),
-          findsNothing,
-        );
-
-        // 2. With callback (platform admin): tile should appear and trigger callback on tap
-        await tester.pumpWidget(
-          _wrapWithApp(
-            Scaffold(
-              body: BusinessSettingsTab(
-                merchantProvider: merchantProvider,
-                currentBusiness: null,
-                onSwitchBusiness: () {},
-                onLogout: () {},
-                onToggleLanguage: () {},
-                onNavigateToPlatform: () => navCalled = true,
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        final tileFinder = find.byKey(
-          const Key('tile_platform_administration'),
-        );
-        expect(tileFinder, findsOneWidget);
-
-        await tester.drag(
-          find.byType(SingleChildScrollView),
-          const Offset(0, -600),
-        );
-        await tester.pumpAndSettle();
-
-        await tester.tap(tileFinder);
-        await tester.pumpAndSettle();
-
-        expect(navCalled, true);
-      },
-    );
-
-    testWidgets(
-      'MerchantHomeScreen shows Platform admin icon in AppBar only for admins',
-      (tester) async {
-        _setDesktopSize(tester);
-        final fakeAdminAuth = FakeAuthProvider(
-          isPlatformAdmin: true,
-          selectedBiz: const BusinessMembership(
-            business: Business(
-              id: 'biz_1',
-              name: 'Al-Ufuq Store',
-              slug: 'alufuq',
-              defaultCurrency: 'SAR',
-              locale: 'ar',
-              timezone: 'Asia/Riyadh',
-            ),
-            permissions: ['*'],
-          ),
-        );
-        final fakeUserAuth = FakeAuthProvider(
-          isPlatformAdmin: false,
-          selectedBiz: const BusinessMembership(
-            business: Business(
-              id: 'biz_1',
-              name: 'Al-Ufuq Store',
-              slug: 'alufuq',
-              defaultCurrency: 'SAR',
-              locale: 'ar',
-              timezone: 'Asia/Riyadh',
-            ),
-            permissions: ['*'],
-          ),
-        );
-
-        final merchantProvider = MerchantProvider(
-          merchantRepository: FakeMerchantRepository(),
-        );
-        final platformProvider = PlatformProvider(
-          repository: FakePlatformRepository(),
-        );
-
-        // 1. For regular user: no platform icon in AppBar
-        await tester.pumpWidget(
-          _wrapWithApp(
-            MerchantHomeScreen(
-              authProvider: fakeUserAuth,
+      // 1. Without callback (regular merchant): tile should NOT appear
+      await tester.pumpWidget(
+        _wrapWithApp(
+          Scaffold(
+            body: BusinessSettingsTab(
               merchantProvider: merchantProvider,
-              platformProvider: platformProvider,
-              localeProvider: AppLocaleProvider(),
+              currentBusiness: null,
               onSwitchBusiness: () {},
               onLogout: () {},
+              onToggleLanguage: () {},
+              onNavigateToPlatform: null,
             ),
           ),
-        );
-        await tester.pumpAndSettle();
-        expect(find.byKey(const Key('btn_appbar_platform')), findsNothing);
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('tile_platform_administration')), findsNothing);
 
-        // 2. For platform admin: platform icon in AppBar appears
-        await tester.pumpWidget(
-          _wrapWithApp(
-            MerchantHomeScreen(
-              authProvider: fakeAdminAuth,
+      // 2. With callback (platform admin): tile should appear and trigger callback on tap
+      await tester.pumpWidget(
+        _wrapWithApp(
+          Scaffold(
+            body: BusinessSettingsTab(
               merchantProvider: merchantProvider,
-              platformProvider: platformProvider,
-              localeProvider: AppLocaleProvider(),
+              currentBusiness: null,
               onSwitchBusiness: () {},
               onLogout: () {},
+              onToggleLanguage: () {},
+              onNavigateToPlatform: () => navCalled = true,
             ),
           ),
-        );
-        await tester.pumpAndSettle();
-        expect(find.byKey(const Key('btn_appbar_platform')), findsOneWidget);
-      },
-    );
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tileFinder = find.byKey(const Key('tile_platform_administration'));
+      expect(tileFinder, findsOneWidget);
+
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      await tester.tap(tileFinder);
+      await tester.pumpAndSettle();
+
+      expect(navCalled, true);
+    });
+
+    testWidgets('MerchantHomeScreen shows Platform admin icon in AppBar only for admins', (
+      tester,
+    ) async {
+      _setDesktopSize(tester);
+      final fakeAdminAuth = FakeAuthProvider(
+        isPlatformAdmin: true,
+        selectedBiz: const BusinessMembership(
+          business: Business(
+            id: 'biz_1',
+            name: 'Al-Ufuq Store',
+            slug: 'alufuq',
+            defaultCurrency: 'SAR',
+            locale: 'ar',
+            timezone: 'Asia/Riyadh',
+          ),
+          permissions: ['*'],
+        ),
+      );
+      final fakeUserAuth = FakeAuthProvider(
+        isPlatformAdmin: false,
+        selectedBiz: const BusinessMembership(
+          business: Business(
+            id: 'biz_1',
+            name: 'Al-Ufuq Store',
+            slug: 'alufuq',
+            defaultCurrency: 'SAR',
+            locale: 'ar',
+            timezone: 'Asia/Riyadh',
+          ),
+          permissions: ['*'],
+        ),
+      );
+
+      final merchantProvider = MerchantProvider(
+        merchantRepository: FakeMerchantRepository(),
+      );
+      final platformProvider = PlatformProvider(
+        repository: FakePlatformRepository(),
+      );
+
+      // 1. For regular user: no platform icon in AppBar
+      await tester.pumpWidget(
+        _wrapWithApp(
+          MerchantHomeScreen(
+            authProvider: fakeUserAuth,
+            merchantProvider: merchantProvider,
+            platformProvider: platformProvider,
+            localeProvider: AppLocaleProvider(),
+            onSwitchBusiness: () {},
+            onLogout: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('merchant_more_actions')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('btn_appbar_platform')), findsNothing);
+      // Close the first popup route before switching the mocked user.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      // 2. For platform admin: platform item is available only to admins
+      await tester.pumpWidget(
+        _wrapWithApp(
+          MerchantHomeScreen(
+            authProvider: fakeAdminAuth,
+            merchantProvider: merchantProvider,
+            platformProvider: platformProvider,
+            localeProvider: AppLocaleProvider(),
+            onSwitchBusiness: () {},
+            onLogout: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('merchant_more_actions')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('btn_appbar_platform')), findsOneWidget);
+    });
   });
 }
 

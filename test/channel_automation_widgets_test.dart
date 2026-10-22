@@ -288,9 +288,7 @@ void main() {
   const testBusinessId = 'b1111111-1111-1111-1111-111111111111';
 
   group('Phase 6 ChannelsScreen Widget Tests', () {
-    testWidgets('renders channel list, status badge, and navigation chips', (
-      tester,
-    ) async {
+    testWidgets('renders channel list, status badge, and navigation chips', (tester) async {
       final fakeRepo = FakeChannelAutomationRepository(
         mockConnections: [
           const ChannelConnection(
@@ -316,99 +314,90 @@ void main() {
 
       final provider = ChannelAutomationProvider(repository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestableWidget(
-          child: ChannelsScreen(
-            channelProvider: provider,
-            businessId: testBusinessId,
-          ),
+      await tester.pumpWidget(createTestableWidget(
+        child: ChannelsScreen(
+          channelProvider: provider,
+          businessId: testBusinessId,
         ),
-      );
+      ));
 
       await tester.pumpAndSettle();
 
       expect(find.text('WhatsApp Support'), findsOneWidget);
-      expect(find.text('ACTIVE'), findsOneWidget);
+      expect(find.text('متصل ونشط'), findsOneWidget);
       expect(find.text('Telegram Bot'), findsOneWidget);
-      expect(find.text('DISCONNECTED'), findsOneWidget);
+      expect(find.text('غير متصل'), findsWidgets);
       expect(find.byType(FloatingActionButton), findsOneWidget);
       expect(find.text('قرارات الذكاء الاصطناعي'), findsOneWidget);
       expect(find.text('قواعد الأتمتة'), findsOneWidget);
       expect(find.text('الردود الجاهزة'), findsOneWidget);
     });
 
-    testWidgets(
-      'history purge preview and confirmation flow executes correctly',
-      (tester) async {
-        final fakeRepo = FakeChannelAutomationRepository(
-          mockConnections: [
-            const ChannelConnection(
-              id: 'conn-1',
-              businessId: testBusinessId,
-              provider: 'meta',
-              channel: 'whatsapp',
-              status: 'active',
-              externalAccountReference: 'Support Line',
-              resourceVersion: 'ver-3',
-            ),
-          ],
-          mockPurgeSummary: const ChannelHistorySummary(
+    testWidgets('history purge preview and confirmation flow executes correctly', (tester) async {
+      final fakeRepo = FakeChannelAutomationRepository(
+        mockConnections: [
+          const ChannelConnection(
+            id: 'conn-1',
             businessId: testBusinessId,
-            connectionId: 'conn-1',
-            conversations: 40,
-            messages: 350,
+            provider: 'meta',
+            channel: 'whatsapp',
+            status: 'active',
+            externalAccountReference: 'Support Line',
+            resourceVersion: 'ver-3',
           ),
-        );
+        ],
+        mockPurgeSummary: const ChannelHistorySummary(
+          businessId: testBusinessId,
+          connectionId: 'conn-1',
+          conversations: 40,
+          messages: 350,
+        ),
+      );
 
-        final provider = ChannelAutomationProvider(repository: fakeRepo);
+      final provider = ChannelAutomationProvider(repository: fakeRepo);
 
-        await tester.pumpWidget(
-          createTestableWidget(
-            child: ChannelsScreen(
-              channelProvider: provider,
-              businessId: testBusinessId,
-            ),
-          ),
-        );
+      await tester.pumpWidget(createTestableWidget(
+        child: ChannelsScreen(
+          channelProvider: provider,
+          businessId: testBusinessId,
+        ),
+      ));
 
-        await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-        // Tap purge history chip
-        final purgeChip = find.text('حذف سجل القناة');
-        expect(purgeChip, findsOneWidget);
-        await tester.tap(purgeChip);
-        await tester.pumpAndSettle();
+      // Tap purge history chip
+      final purgeChip = find.text('حذف سجل القناة');
+      expect(purgeChip, findsOneWidget);
+      await tester.tap(purgeChip);
+      await tester.pumpAndSettle();
 
-        // Verify preview dialog showed counts
-        expect(fakeRepo.previewPurgeCalled, isTrue);
-        expect(find.text('معاينة حذف سجل القناة'), findsOneWidget);
-        expect(find.text('المحادثات المتأثرة: 40'), findsOneWidget);
-        expect(find.text('الرسائل المتأثرة: 350'), findsOneWidget);
+      // Verify preview dialog showed counts
+      expect(fakeRepo.previewPurgeCalled, isTrue);
+      expect(find.text('معاينة حذف سجل القناة'), findsOneWidget);
+      expect(find.text('المحادثات المتأثرة: 40'), findsOneWidget);
+      expect(find.text('الرسائل المتأثرة: 350'), findsOneWidget);
 
-        // Enter invalid confirmation
-        final inputField = find.byType(TextFormField);
-        await tester.enterText(inputField, 'WRONG_CONFIRM');
-        await tester.tap(find.widgetWithText(ElevatedButton, 'حذف سجل القناة'));
-        await tester.pumpAndSettle();
+      // Enter invalid confirmation
+      final inputField = find.byType(TextFormField);
+      await tester.enterText(inputField, 'WRONG_CONFIRM');
+      await tester.tap(find.widgetWithText(ElevatedButton, 'حذف سجل القناة'));
+      await tester.pumpAndSettle();
 
-        expect(find.text('نص التأكيد غير مطابق بدقة'), findsOneWidget);
-        expect(fakeRepo.purgeCalled, isFalse);
+      expect(find.text('نص التأكيد غير مطابق بدقة'), findsOneWidget);
+      expect(fakeRepo.purgeCalled, isFalse);
 
-        // Enter exact confirmation string
-        await tester.enterText(inputField, 'DELETE_ALL_CHANNEL_HISTORY');
-        await tester.tap(find.widgetWithText(ElevatedButton, 'حذف سجل القناة'));
-        await tester.pumpAndSettle();
+      // Enter exact confirmation string
+      await tester.enterText(inputField, 'DELETE_ALL_CHANNEL_HISTORY');
+      await tester.tap(find.widgetWithText(ElevatedButton, 'حذف سجل القناة'));
+      await tester.pumpAndSettle();
 
-        expect(fakeRepo.purgeCalled, isTrue);
-        expect(find.text('تم حذف سجل القناة بالكامل بنجاح'), findsOneWidget);
-      },
-    );
+      expect(fakeRepo.purgeCalled, isTrue);
+      expect(find.text('تم حذف سجل القناة بالكامل بنجاح'), findsOneWidget);
+    });
   });
 
   group('Phase 6 AutomationRulesScreen Widget Tests', () {
-    testWidgets('renders rules list and allows toggling status', (
-      tester,
-    ) async {
+    testWidgets('renders rules list and allows toggling status', (tester) async {
       final fakeRepo = FakeChannelAutomationRepository(
         mockRules: [
           const AutomationRule(
@@ -427,14 +416,12 @@ void main() {
 
       final provider = ChannelAutomationProvider(repository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestableWidget(
-          child: AutomationRulesScreen(
-            channelProvider: provider,
-            businessId: testBusinessId,
-          ),
+      await tester.pumpWidget(createTestableWidget(
+        child: AutomationRulesScreen(
+          channelProvider: provider,
+          businessId: testBusinessId,
         ),
-      );
+      ));
 
       await tester.pumpAndSettle();
 
@@ -448,28 +435,22 @@ void main() {
       expect(fakeRepo.updateRuleCalled, isTrue);
     });
 
-    testWidgets('opens create rule dialog and submits successfully', (
-      tester,
-    ) async {
+    testWidgets('opens create rule dialog and submits successfully', (tester) async {
       final fakeRepo = FakeChannelAutomationRepository(mockRules: []);
       final provider = ChannelAutomationProvider(repository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestableWidget(
-          child: AutomationRulesScreen(
-            channelProvider: provider,
-            businessId: testBusinessId,
-          ),
+      await tester.pumpWidget(createTestableWidget(
+        child: AutomationRulesScreen(
+          channelProvider: provider,
+          businessId: testBusinessId,
         ),
-      );
+      ));
 
       await tester.pumpAndSettle();
 
       expect(find.text('لا توجد قواعد أتمتة مضافة'), findsOneWidget);
 
-      await tester.tap(
-        find.widgetWithText(ElevatedButton, 'إضافة قاعدة جديدة'),
-      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'إضافة قاعدة جديدة'));
       await tester.pumpAndSettle();
 
       // Enter name and action parameter
@@ -477,9 +458,7 @@ void main() {
       await tester.enterText(textFields.at(0), 'قاعدة التعيين التلقائي');
       await tester.enterText(textFields.at(2), 'Support Team');
 
-      await tester.tap(
-        find.widgetWithText(ElevatedButton, 'إضافة قاعدة جديدة').last,
-      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'إضافة قاعدة جديدة').last);
       await tester.pumpAndSettle();
 
       expect(fakeRepo.createRuleCalled, isTrue);
@@ -488,9 +467,7 @@ void main() {
   });
 
   group('Phase 6 AIDecisionsScreen Widget Tests', () {
-    testWidgets('renders decisions list and displays human review action', (
-      tester,
-    ) async {
+    testWidgets('renders decisions list and displays human review action', (tester) async {
       final fakeRepo = FakeChannelAutomationRepository(
         mockDecisions: [
           const AIDecision(
@@ -506,14 +483,12 @@ void main() {
 
       final provider = ChannelAutomationProvider(repository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestableWidget(
-          child: AIDecisionsScreen(
-            channelProvider: provider,
-            businessId: testBusinessId,
-          ),
+      await tester.pumpWidget(createTestableWidget(
+        child: AIDecisionsScreen(
+          channelProvider: provider,
+          businessId: testBusinessId,
         ),
-      );
+      ));
 
       await tester.pumpAndSettle();
 
@@ -535,9 +510,7 @@ void main() {
   });
 
   group('Phase 6 CannedRepliesScreen Widget Tests', () {
-    testWidgets('renders canned replies list and creates new reply', (
-      tester,
-    ) async {
+    testWidgets('renders canned replies list and creates new reply', (tester) async {
       final fakeRepo = FakeChannelAutomationRepository(
         mockReplies: [
           const CannedReply(
@@ -554,14 +527,12 @@ void main() {
 
       final provider = ChannelAutomationProvider(repository: fakeRepo);
 
-      await tester.pumpWidget(
-        createTestableWidget(
-          child: CannedRepliesScreen(
-            channelProvider: provider,
-            businessId: testBusinessId,
-          ),
+      await tester.pumpWidget(createTestableWidget(
+        child: CannedRepliesScreen(
+          channelProvider: provider,
+          businessId: testBusinessId,
         ),
-      );
+      ));
 
       await tester.pumpAndSettle();
 

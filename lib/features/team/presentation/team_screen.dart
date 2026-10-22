@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import '../../../app/localization/app_localizations.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../app/widgets/merchant_editor_dialog.dart';
 import '../../../core/models/team_audit_models.dart';
+import '../../../core/services/invitation_link_service.dart';
+import '../../../core/team/team_invitation_presentation.dart';
 import '../providers/team_audit_provider.dart';
 
 class TeamScreen extends StatefulWidget {
@@ -118,6 +120,7 @@ class _TeamScreenState extends State<TeamScreen>
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
+        scrollable: true,
         title: Row(
           children: [
             const Icon(Icons.check_circle, color: AppColors.statusSuccess),
@@ -131,10 +134,7 @@ class _TeamScreenState extends State<TeamScreen>
           children: [
             Text(
               AppStrings.get('invitation_token_modal_desc', ctx),
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-              ),
+              style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 12),
             Container(
@@ -145,13 +145,22 @@ class _TeamScreenState extends State<TeamScreen>
                 border: Border.all(color: AppColors.borderHairline),
               ),
               child: SelectableText(
-                created.acceptanceToken,
+                InvitationLinkService.buildWebInvitationUrl(
+                  created.acceptanceToken),
                 style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: AppColors.primary,
+                  color: AppColors.primary, fontWeight: FontWeight.w600,
+                  fontSize: 13,
                 ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SelectableText(
+              created.acceptanceToken,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 8),
@@ -166,6 +175,38 @@ class _TeamScreenState extends State<TeamScreen>
           ],
         ),
         actions: [
+          TextButton.icon(
+            key: const Key('btn_share_invitation'),
+            icon: const Icon(Icons.share_outlined, size: 18),
+            label: const Text('مشاركة الدعوة'),
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final shared = await InvitationLinkService.shareInvitation(
+                token: created.acceptanceToken,
+                businessName: created.invitation.businessName,
+                role: _getRoleLabel(ctx, created.invitation.role),
+                email: created.invitation.email,
+              );
+              if (!shared && mounted) {
+                messenger.showSnackBar(const SnackBar(
+                  content: Text('يمكنك نسخ الرابط ومشاركته يدويًا.'),
+                ));
+              }
+            },
+          ),
+          TextButton.icon(
+            key: const Key('btn_copy_invitation_url'),
+            icon: const Icon(Icons.link_outlined, size: 18),
+            label: const Text('نسخ رابط الدعوة'),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(
+                text: InvitationLinkService.buildWebInvitationUrl(
+                  created.acceptanceToken)));
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('تم نسخ رابط الدعوة')));
+            },
+          ),
           TextButton.icon(
             key: const Key('btn_copy_token'),
             icon: const Icon(Icons.copy, size: 16),
@@ -195,14 +236,13 @@ class _TeamScreenState extends State<TeamScreen>
     final nameController = TextEditingController();
     final expiryController = TextEditingController(text: '72');
     String selectedRole = TeamRoles.agent;
-    List<String> selectedPermissions = TeamRoles.defaultPermissionsForRole(
-      TeamRoles.agent,
-    );
+    List<String> selectedPermissions =
+        TeamRoles.defaultPermissionsForRole(TeamRoles.agent);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (dialogCtx, setDialogState) => AlertDialog(
+        builder: (dialogCtx, setDialogState) => MerchantEditorDialog(
           title: Text(AppStrings.get('invite_member_title', dialogCtx)),
           content: SizedBox(
             width: 500,
@@ -226,10 +266,8 @@ class _TeamScreenState extends State<TeamScreen>
                     key: const Key('input_invite_name'),
                     controller: nameController,
                     decoration: InputDecoration(
-                      labelText: AppStrings.get(
-                        'member_display_name',
-                        dialogCtx,
-                      ),
+                      labelText:
+                          AppStrings.get('member_display_name', dialogCtx),
                       prefixIcon: const Icon(Icons.person_outline),
                     ),
                   ),
@@ -266,7 +304,7 @@ class _TeamScreenState extends State<TeamScreen>
                     decoration: InputDecoration(
                       labelText: AppStrings.get('expires_in_hours', dialogCtx),
                       prefixIcon: const Icon(Icons.timer_outlined),
-                      helperText: '1 - 720 hours',
+                      helperText: 'من ساعة واحدة إلى 720 ساعة',
                     ),
                     keyboardType: TextInputType.number,
                   ),
@@ -285,17 +323,16 @@ class _TeamScreenState extends State<TeamScreen>
                                 TeamPermissions.all.length) {
                               selectedPermissions.clear();
                             } else {
-                              selectedPermissions = List.from(
-                                TeamPermissions.all,
-                              );
+                              selectedPermissions =
+                                  List.from(TeamPermissions.all);
                             }
                           });
                         },
                         child: Text(
                           selectedPermissions.length ==
                                   TeamPermissions.all.length
-                              ? 'Deselect All'
-                              : 'Select All',
+                              ? 'إلغاء تحديد الكل'
+                              : 'تحديد الكل',
                           style: const TextStyle(fontSize: 12),
                         ),
                       ),
@@ -315,10 +352,7 @@ class _TeamScreenState extends State<TeamScreen>
                         final isChecked = selectedPermissions.contains(perm);
                         return CheckboxListTile(
                           dense: true,
-                          title: Text(
-                            perm,
-                            style: const TextStyle(fontSize: 12),
-                          ),
+                          title: Text(perm, style: const TextStyle(fontSize: 12)),
                           value: isChecked,
                           onChanged: (checked) {
                             setDialogState(() {
@@ -352,15 +386,18 @@ class _TeamScreenState extends State<TeamScreen>
                 if (email.isEmpty || name.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        AppStrings.get('required_field', dialogCtx),
-                      ),
+                      content: Text(AppStrings.get('required_field', dialogCtx)),
                       backgroundColor: AppColors.statusError,
                     ),
                   );
                   return;
                 }
 
+                if (expiry == null || expiry < 1 || expiry > 720) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('مدة الدعوة يجب أن تكون بين 1 و720 ساعة.')));
+                  return;
+                }
                 if (selectedPermissions.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -481,10 +518,7 @@ class _TeamScreenState extends State<TeamScreen>
                         final isChecked = selectedPermissions.contains(perm);
                         return CheckboxListTile(
                           dense: true,
-                          title: Text(
-                            perm,
-                            style: const TextStyle(fontSize: 12),
-                          ),
+                          title: Text(perm, style: const TextStyle(fontSize: 12)),
                           value: isChecked,
                           onChanged: (checked) {
                             setDialogState(() {
@@ -522,9 +556,8 @@ class _TeamScreenState extends State<TeamScreen>
                 if (ok && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        AppStrings.get('update_access_success', context),
-                      ),
+                      content:
+                          Text(AppStrings.get('update_access_success', context)),
                       backgroundColor: AppColors.statusSuccess,
                     ),
                   );
@@ -584,9 +617,8 @@ class _TeamScreenState extends State<TeamScreen>
               if (ok && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      AppStrings.get('member_revoked_success', context),
-                    ),
+                    content:
+                        Text(AppStrings.get('member_revoked_success', context)),
                     backgroundColor: AppColors.statusSuccess,
                   ),
                 );
@@ -608,60 +640,90 @@ class _TeamScreenState extends State<TeamScreen>
 
   void _showResendInvitationDialog(TeamInvitationDetails invitation) {
     final expiryController = TextEditingController(text: '72');
-
-    showDialog(
+    bool sending = false;
+    String? error;
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppStrings.get('resend_invitation', ctx)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(AppStrings.get('resend_invitation_confirm', ctx)),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('input_resend_expiry'),
-              controller: expiryController,
-              decoration: InputDecoration(
-                labelText: AppStrings.get('expires_in_hours', ctx),
-                prefixIcon: const Icon(Icons.timer_outlined),
-              ),
-              keyboardType: TextInputType.number,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, updateDialog) => AlertDialog(
+          scrollable: true,
+          title: const Text('تجديد رابط الدعوة'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('سيصبح رابط الدعوة السابق غير صالح، وسيُنشأ رمز جديد. لن يُرسل بريد تلقائيًا؛ شارك الرابط الجديد مع الموظف بعد إنشائه.'),
+                const SizedBox(height: 16),
+                TextField(
+                  key: const Key('input_resend_expiry'),
+                  controller: expiryController,
+                  enabled: !sending,
+                  textDirection: TextDirection.ltr,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'صلاحية الرابط الجديد بالساعات',
+                    helperText: 'من ساعة واحدة إلى 720 ساعة',
+                    prefixIcon: Icon(Icons.timer_outlined),
+                  ),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(error!, style: const TextStyle(color: AppColors.statusError)),
+                  if (widget.provider.lastRequestId?.isNotEmpty == true)
+                    SelectableText(
+                      'رقم الطلب للدعم: ${widget.provider.lastRequestId}',
+                      style: const TextStyle(fontSize: 12,
+                        color: AppColors.textMuted)),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: sending ? null : () => Navigator.of(ctx).pop(),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              key: const Key('btn_confirm_resend_invitation'),
+              onPressed: sending ? null : () async {
+                final hours = int.tryParse(expiryController.text.trim());
+                if (hours == null || hours < 1 || hours > 720) {
+                  updateDialog(() => error = 'اختر مدة من ساعة إلى 720 ساعة.');
+                  return;
+                }
+                updateDialog(() {
+                  sending = true;
+                  error = null;
+                });
+                final created = await widget.provider.resendInvitation(
+                  businessId: widget.businessId,
+                  invitationId: invitation.id,
+                  expiresInHours: hours,
+                );
+                if (!ctx.mounted) return;
+                if (created == null) {
+                  updateDialog(() {
+                    sending = false;
+                    error = widget.provider.actionError ??
+                      'تعذر تجديد الدعوة. أعد تحميل القائمة ثم حاول مجددًا.';
+                  });
+                  return;
+                }
+                Navigator.of(ctx).pop();
+                if (mounted) _showTokenDialog(created);
+              },
+              child: sending
+                ? const SizedBox(width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2,
+                      color: Colors.white))
+                : const Text('إنشاء رابط جديد'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppStrings.get('cancel', ctx)),
-          ),
-          ElevatedButton(
-            key: const Key('btn_confirm_resend_invitation'),
-            onPressed: () async {
-              final expiry = int.tryParse(expiryController.text.trim());
-              Navigator.of(ctx).pop();
-              final created = await widget.provider.resendInvitation(
-                businessId: widget.businessId,
-                invitationId: invitation.id,
-                expiresInHours: expiry,
-              );
-
-              if (created != null && mounted) {
-                _showTokenDialog(created);
-              } else if (mounted && widget.provider.actionError != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(widget.provider.actionError!),
-                    backgroundColor: AppColors.statusError,
-                  ),
-                );
-              }
-            },
-            child: Text(AppStrings.get('resend_invitation', ctx)),
-          ),
-        ],
       ),
-    );
+    ).whenComplete(expiryController.dispose);
   }
 
   void _showRevokeInvitationDialog(TeamInvitationDetails invitation) {
@@ -692,8 +754,7 @@ class _TeamScreenState extends State<TeamScreen>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      AppStrings.get('invitation_revoked_success', context),
-                    ),
+                        AppStrings.get('invitation_revoked_success', context)),
                     backgroundColor: AppColors.statusSuccess,
                   ),
                 );
@@ -752,7 +813,10 @@ class _TeamScreenState extends State<TeamScreen>
           ),
           body: TabBarView(
             controller: _tabController,
-            children: [_buildMembersTab(), _buildInvitationsTab()],
+            children: [
+              _buildMembersTab(),
+              _buildInvitationsTab(),
+            ],
           ),
         );
       },
@@ -771,11 +835,7 @@ class _TeamScreenState extends State<TeamScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-              color: AppColors.statusError,
-            ),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.statusError),
             const SizedBox(height: 12),
             Text(
               widget.provider.membersError!,
@@ -783,10 +843,8 @@ class _TeamScreenState extends State<TeamScreen>
             ),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: () => widget.provider.fetchMembers(
-                widget.businessId,
-                refresh: true,
-              ),
+              onPressed: () => widget.provider
+                  .fetchMembers(widget.businessId, refresh: true),
               child: Text(AppStrings.get('retry', context)),
             ),
           ],
@@ -812,18 +870,16 @@ class _TeamScreenState extends State<TeamScreen>
                     widget.provider.setMemberFilters(role: 'all'),
               ),
               const SizedBox(width: 6),
-              ...TeamRoles.allRoles.map(
-                (r) => Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: FilterChip(
-                    key: Key('chip_role_$r'),
-                    label: Text(_getRoleLabel(context, r)),
-                    selected: widget.provider.memberRoleFilter == r,
-                    onSelected: (_) =>
-                        widget.provider.setMemberFilters(role: r),
-                  ),
-                ),
-              ),
+              ...TeamRoles.allRoles.map((r) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      key: Key('chip_role_$r'),
+                      label: Text(_getRoleLabel(context, r)),
+                      selected: widget.provider.memberRoleFilter == r,
+                      onSelected: (_) =>
+                          widget.provider.setMemberFilters(role: r),
+                    ),
+                  )),
               const VerticalDivider(),
               FilterChip(
                 key: const Key('chip_status_all'),
@@ -870,7 +926,9 @@ class _TeamScreenState extends State<TeamScreen>
                       elevation: 1,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: AppColors.borderHairline),
+                        side: BorderSide(
+                          color: AppColors.borderHairline,
+                        ),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -880,8 +938,8 @@ class _TeamScreenState extends State<TeamScreen>
                             Row(
                               children: [
                                 CircleAvatar(
-                                  backgroundColor: _getRoleColor(member.role)
-                                      .withValues(alpha: 0.12),
+                                  backgroundColor:
+                                      _getRoleColor(member.role).withValues(alpha: 0.12),
                                   child: Icon(
                                     member.isOwner
                                         ? Icons.stars
@@ -914,9 +972,7 @@ class _TeamScreenState extends State<TeamScreen>
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: _getRoleColor(member.role)
                                         .withValues(alpha: 0.12),
@@ -934,9 +990,7 @@ class _TeamScreenState extends State<TeamScreen>
                                 const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: _getStatusColor(member.status)
                                         .withValues(alpha: 0.12),
@@ -953,9 +1007,7 @@ class _TeamScreenState extends State<TeamScreen>
                                 ),
                                 if (!member.isOwner)
                                   PopupMenuButton<String>(
-                                    key: Key(
-                                      'menu_member_${member.principalId}',
-                                    ),
+                                    key: Key('menu_member_${member.principalId}'),
                                     onSelected: (val) {
                                       if (val == 'edit') {
                                         _showEditAccessDialog(member);
@@ -968,17 +1020,11 @@ class _TeamScreenState extends State<TeamScreen>
                                         value: 'edit',
                                         child: Row(
                                           children: [
-                                            const Icon(
-                                              Icons.edit_outlined,
-                                              size: 16,
-                                            ),
+                                            const Icon(Icons.edit_outlined,
+                                                size: 16),
                                             const SizedBox(width: 8),
-                                            Text(
-                                              AppStrings.get(
-                                                'edit_member_access',
-                                                context,
-                                              ),
-                                            ),
+                                            Text(AppStrings.get(
+                                                'edit_member_access', context)),
                                           ],
                                         ),
                                       ),
@@ -986,20 +1032,16 @@ class _TeamScreenState extends State<TeamScreen>
                                         value: 'revoke',
                                         child: Row(
                                           children: [
-                                            const Icon(
-                                              Icons.person_off_outlined,
-                                              size: 16,
-                                              color: AppColors.statusError,
-                                            ),
+                                            const Icon(Icons.person_off_outlined,
+                                                size: 16,
+                                                color: AppColors.statusError),
                                             const SizedBox(width: 8),
                                             Text(
                                               AppStrings.get(
-                                                'revoke_member',
-                                                context,
-                                              ),
+                                                  'revoke_member', context),
                                               style: const TextStyle(
-                                                color: AppColors.statusError,
-                                              ),
+                                                  color:
+                                                      AppColors.statusError),
                                             ),
                                           ],
                                         ),
@@ -1012,40 +1054,34 @@ class _TeamScreenState extends State<TeamScreen>
                             Wrap(
                               spacing: 6,
                               runSpacing: 4,
-                              children:
-                                  member.permissions
-                                      .take(6)
-                                      .map(
-                                        (p) => Chip(
-                                          visualDensity: VisualDensity.compact,
-                                          materialTapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                          padding: EdgeInsets.zero,
-                                          label: Text(
-                                            p,
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList()
-                                    ..addAll(
-                                      member.permissions.length > 6
-                                          ? [
-                                              Chip(
-                                                visualDensity:
-                                                    VisualDensity.compact,
-                                                label: Text(
-                                                  '+${member.permissions.length - 6}',
-                                                  style: const TextStyle(
-                                                    fontSize: 10,
-                                                  ),
-                                                ),
-                                              ),
-                                            ]
-                                          : [],
+                              children: member.permissions
+                                  .take(6)
+                                  .map(
+                                    (p) => Chip(
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      padding: EdgeInsets.zero,
+                                      label: Text(p,
+                                          style: const TextStyle(fontSize: 10)),
                                     ),
+                                  )
+                                  .toList()
+                                ..addAll(
+                                  member.permissions.length > 6
+                                      ? [
+                                          Chip(
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            label: Text(
+                                              '+${member.permissions.length - 6}',
+                                              style:
+                                                  const TextStyle(fontSize: 10),
+                                            ),
+                                          )
+                                        ]
+                                      : [],
+                                ),
                             ),
                           ],
                         ),
@@ -1070,11 +1106,7 @@ class _TeamScreenState extends State<TeamScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-              color: AppColors.statusError,
-            ),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.statusError),
             const SizedBox(height: 12),
             Text(
               widget.provider.invitationsError!,
@@ -1082,10 +1114,8 @@ class _TeamScreenState extends State<TeamScreen>
             ),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: () => widget.provider.fetchInvitations(
-                widget.businessId,
-                refresh: true,
-              ),
+              onPressed: () => widget.provider
+                  .fetchInvitations(widget.businessId, refresh: true),
               child: Text(AppStrings.get('retry', context)),
             ),
           ],
@@ -1156,7 +1186,9 @@ class _TeamScreenState extends State<TeamScreen>
                       elevation: 1,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: AppColors.borderHairline),
+                        side: BorderSide(
+                          color: AppColors.borderHairline,
+                        ),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -1166,8 +1198,8 @@ class _TeamScreenState extends State<TeamScreen>
                             Row(
                               children: [
                                 CircleAvatar(
-                                  backgroundColor: _getRoleColor(inv.role)
-                                      .withValues(alpha: 0.12),
+                                  backgroundColor:
+                                      _getRoleColor(inv.role).withValues(alpha: 0.12),
                                   child: Icon(
                                     Icons.mail_outline,
                                     color: _getRoleColor(inv.role),
@@ -1198,9 +1230,7 @@ class _TeamScreenState extends State<TeamScreen>
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: _getRoleColor(inv.role)
                                         .withValues(alpha: 0.12),
@@ -1218,9 +1248,7 @@ class _TeamScreenState extends State<TeamScreen>
                                 const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: _getStatusColor(inv.status)
                                         .withValues(alpha: 0.12),
@@ -1239,11 +1267,9 @@ class _TeamScreenState extends State<TeamScreen>
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '${AppStrings.get('expires_at', context)}: ${inv.expiresAt}',
+                              '${AppStrings.get('expires_at', context)}: ${formatTeamInvitationDate(context, inv.expiresAt)}',
                               style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textMuted,
-                              ),
+                                  fontSize: 12, color: AppColors.textMuted),
                             ),
                             if (inv.isPending) ...[
                               const SizedBox(height: 12),
@@ -1253,31 +1279,22 @@ class _TeamScreenState extends State<TeamScreen>
                                   OutlinedButton.icon(
                                     key: Key('btn_resend_inv_${inv.id}'),
                                     icon: const Icon(Icons.refresh, size: 16),
-                                    label: Text(
-                                      AppStrings.get(
-                                        'resend_invitation',
-                                        context,
-                                      ),
-                                    ),
+                                    label: Text(AppStrings.get(
+                                        'resend_invitation', context)),
                                     onPressed: () =>
                                         _showResendInvitationDialog(inv),
                                   ),
                                   const SizedBox(width: 8),
                                   TextButton.icon(
                                     key: Key('btn_revoke_inv_${inv.id}'),
-                                    icon: const Icon(
-                                      Icons.close,
-                                      size: 16,
-                                      color: AppColors.statusError,
-                                    ),
+                                    icon: const Icon(Icons.close,
+                                        size: 16,
+                                        color: AppColors.statusError),
                                     label: Text(
                                       AppStrings.get(
-                                        'revoke_invitation',
-                                        context,
-                                      ),
+                                          'revoke_invitation', context),
                                       style: const TextStyle(
-                                        color: AppColors.statusError,
-                                      ),
+                                          color: AppColors.statusError),
                                     ),
                                     onPressed: () =>
                                         _showRevokeInvitationDialog(inv),

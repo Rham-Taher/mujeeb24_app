@@ -47,7 +47,7 @@ void main() {
     test('buildWebInvitationUrl creates correct https url with token', () {
       const token = 'tok_test_123456';
       final url = InvitationLinkService.buildWebInvitationUrl(token);
-      expect(url, 'https://mujeeb24.app/invite?token=tok_test_123456');
+      expect(url, 'https://mujeeb24.com/accept-invite?token=tok_test_123456');
     });
 
     test('buildAppDeepLink creates correct custom scheme url', () {
@@ -66,18 +66,18 @@ void main() {
 
       expect(message.contains(token), isTrue);
       expect(
-        message.contains('https://mujeeb24.app/invite?token=tok_magic_789'),
+        message.contains('https://mujeeb24.com/accept-invite?token=tok_magic_789'),
         isTrue,
       );
       expect(message.contains('متجر الأفق'), isTrue);
       expect(message.contains('مسؤول نشاط'), isTrue);
-      expect(message.contains('تحميل تطبيق "مجيب 24"'), isTrue);
+      expect(message.contains('يمكن قبول الدعوة من صفحة الويب'), isTrue);
     });
   });
 
   group('DeepLinkService URI Extraction Tests', () {
     test('extracts token from standard https web link with query param', () {
-      final uri = Uri.parse('https://mujeeb24.app/invite?token=inv_abc_123');
+      final uri = Uri.parse('https://mujeeb24.com/accept-invite?token=inv_abc_123');
       final token = DeepLinkService.extractInvitationToken(uri);
       expect(token, 'inv_abc_123');
     });
@@ -89,13 +89,14 @@ void main() {
     });
 
     test('extracts token from path segment /invite/inv_path_123', () {
-      final uri = Uri.parse('https://mujeeb24.app/invite/inv_path_123');
+      // Legacy paths are not valid accepting routes on the current website.
+      final uri = Uri.parse('https://mujeeb24.com/invite/inv_path_123');
       final token = DeepLinkService.extractInvitationToken(uri);
-      expect(token, 'inv_path_123');
+      expect(token, isNull);
     });
 
     test('returns null for unrelated uri', () {
-      final uri = Uri.parse('https://mujeeb24.app/home');
+      final uri = Uri.parse('https://mujeeb24.com/home');
       final token = DeepLinkService.extractInvitationToken(uri);
       expect(token, isNull);
     });

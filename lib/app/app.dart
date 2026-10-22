@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:mujeeb24_app/core/services/deep_link_service.dart';
+import 'package:mujeeb24_app/core/auth/refresh_cookie_store.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:mujeeb24_app/app/localization/app_localizations.dart';
 import 'package:mujeeb24_app/app/theme/app_theme.dart';
@@ -57,21 +61,24 @@ class _MujeebAppState extends State<MujeebApp> {
   late final PlatformProvider _platformProvider;
   final AppLocaleProvider _localeProvider = AppLocaleProvider();
 
+  final DeepLinkService _deepLinkService = DeepLinkService();
+  String? _incomingInvitationToken;
   AppRoute _currentRoute = AppRoute.login;
+  bool _restoringSavedSession = true;
 
   @override
   void initState() {
     super.initState();
-    _apiClient = widget.apiClient ?? ApiClient();
+    _apiClient = widget.apiClient ?? ApiClient(
+      cookieStore: SecureRefreshCookieStore(),
+    );
     _authRepository = AuthRepository(apiClient: _apiClient);
     _workspaceRepository = WorkspaceRepository(apiClient: _apiClient);
     _merchantRepository = MerchantRepository(apiClient: _apiClient);
     _crmRepository = CrmRepository(apiClient: _apiClient);
     _transactionRepository = TransactionRepository(apiClient: _apiClient);
     _catalogRepository = CatalogRepository(apiClient: _apiClient);
-    _channelAutomationRepository = ChannelAutomationRepository(
-      apiClient: _apiClient,
-    );
+    _channelAutomationRepository = ChannelAutomationRepository(apiClient: _apiClient);
     _teamAuditRepository = TeamAuditRepository(apiClient: _apiClient);
     _platformRepository = PlatformRepository(apiClient: _apiClient);
     _authProvider = AuthProvider(
@@ -85,15 +92,30 @@ class _MujeebAppState extends State<MujeebApp> {
     _transactionProvider = TransactionProvider(
       transactionRepository: _transactionRepository,
     );
-    _catalogProvider = CatalogProvider(catalogRepository: _catalogRepository);
+    _catalogProvider = CatalogProvider(
+      catalogRepository: _catalogRepository,
+    );
     _channelAutomationProvider = ChannelAutomationProvider(
       repository: _channelAutomationRepository,
     );
-    _teamAuditProvider = TeamAuditProvider(repository: _teamAuditRepository);
-    _platformProvider = PlatformProvider(repository: _platformRepository);
+    _teamAuditProvider = TeamAuditProvider(
+      repository: _teamAuditRepository,
+    );
+    _platformProvider = PlatformProvider(
+      repository: _platformRepository,
+    );
 
+    _apiClient.onSessionExpired = _authProvider.markSessionExpired;
     _authProvider.addListener(_handleAuthStateChange);
+    unawaited(_restoreSessionAtStartup());
     _localeProvider.addListener(() => setState(() {}));
+    unawaited(_deepLinkService.init(onInvitationReceived: (token) {
+      if (!mounted) return;
+      setState(() {
+        _incomingInvitationToken = token;
+        _currentRoute = AppRoute.invitation;
+      });
+    }));
   }
 
   @override
@@ -107,11 +129,27 @@ class _MujeebAppState extends State<MujeebApp> {
     _channelAutomationProvider.dispose();
     _teamAuditProvider.dispose();
     _platformProvider.dispose();
+    _deepLinkService.dispose();
     _localeProvider.dispose();
     super.dispose();
   }
 
+  Future<void> _restoreSessionAtStartup() async {
+    try {
+      await _apiClient.restoreRefreshCookie();
+      if (_apiClient.refreshCookie?.isNotEmpty == true &&
+          _apiClient.accessToken == null) {
+        await _authProvider.initSession();
+      }
+    } catch (_) {
+      // An unavailable Keystore/Keychain must never crash the login screen.
+    } finally {
+      if (mounted) setState(() => _restoringSavedSession = false);
+    }
+  }
+
   void _handleAuthStateChange() {
+    if (!mounted) return;
     setState(() {
       if (_authProvider.isAuthenticated) {
         if (_authProvider.accessibleBusinesses.length > 1 &&
@@ -132,6 +170,19 @@ class _MujeebAppState extends State<MujeebApp> {
 
   @override
   Widget build(BuildContext context) {
+    if (_restoringSavedSession) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: Semantics(
+              label: 'جاري التحقق من جلسة الدخول',
+              child: const CircularProgressIndicator(),
+            ),
+          ),
+        ),
+      );
+    }
     return MaterialApp(
       title: 'Mujeeb 24',
       debugShowCheckedModeBanner: false,
@@ -151,7 +202,9 @@ class _MujeebAppState extends State<MujeebApp> {
     switch (_currentRoute) {
       case AppRoute.invitation:
         return InvitationScreen(
+          key: ValueKey(_incomingInvitationToken),
           authProvider: _authProvider,
+          initialToken: _incomingInvitationToken,
           onBackToLogin: () {
             setState(() => _currentRoute = AppRoute.login);
           },
@@ -164,7 +217,8 @@ class _MujeebAppState extends State<MujeebApp> {
             setState(() => _currentRoute = AppRoute.workspace);
           },
           onLogout: () {
-            setState(() => _currentRoute = AppRoute.login);
+            // Changing route alone is NOT logout. Revoke and clear credentials.
+            unawaited(_authProvider.logout());
           },
         );
 
@@ -183,7 +237,8 @@ class _MujeebAppState extends State<MujeebApp> {
             setState(() => _currentRoute = AppRoute.businessSelection);
           },
           onLogout: () {
-            setState(() => _currentRoute = AppRoute.login);
+            // Changing route alone is NOT logout. Revoke and clear credentials.
+            unawaited(_authProvider.logout());
           },
         );
 
@@ -194,7 +249,10 @@ class _MujeebAppState extends State<MujeebApp> {
             _handleAuthStateChange();
           },
           onNavigateToInvitation: () {
-            setState(() => _currentRoute = AppRoute.invitation);
+            setState(() {
+              _incomingInvitationToken = null;
+              _currentRoute = AppRoute.invitation;
+            });
           },
         );
     }
