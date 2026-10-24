@@ -296,9 +296,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
                   ],
                 ),
                 Text(
-                  msg.createdAt != null && msg.createdAt!.length > 16
-                      ? msg.createdAt!.substring(11, 16)
-                      : '',
+                  msg.displayTime,
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.textMuted,
@@ -358,9 +356,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  msg.createdAt != null && msg.createdAt!.length > 16
-                      ? msg.createdAt!.substring(11, 16)
-                      : '',
+                  msg.displayTime,
                   style: TextStyle(
                     fontSize: 10,
                     color: isOutbound

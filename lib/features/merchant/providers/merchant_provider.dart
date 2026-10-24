@@ -21,6 +21,7 @@ class MerchantProvider extends ChangeNotifier {
   bool _isLoadingPolicy = false;
   bool _isLoadingConversations = false;
   bool _isLoadingMessages = false;
+  bool _isLoadingMoreMessages = false;
   bool _isPerformingAction = false;
 
   String? _dashboardError;
@@ -46,6 +47,7 @@ class MerchantProvider extends ChangeNotifier {
   List<Conversation> get conversations => _conversations;
   Conversation? get selectedConversation => _selectedConversation;
   List<Message> get messages => _messages;
+  bool get isLoadingMoreMessages => _isLoadingMoreMessages;
   List<CannedReply> get cannedReplies => _cannedReplies;
 
   bool get isLoadingDashboard => _isLoadingDashboard;
@@ -101,16 +103,63 @@ class MerchantProvider extends ChangeNotifier {
       }
 
       if (_conversationOwnershipFilter == 'assigned' &&
-          (c.assignment == null || c.ownership == 'none' || c.ownership == 'unassigned')) {
+          (c.assignment == null ||
+              c.ownership == 'none' ||
+              c.ownership == 'unassigned')) {
         return false;
       }
       if (_conversationOwnershipFilter == 'unassigned' &&
-          (c.assignment != null && c.ownership != 'none' && c.ownership != 'unassigned')) {
+          (c.assignment != null &&
+              c.ownership != 'none' &&
+              c.ownership != 'unassigned')) {
         return false;
       }
 
       return true;
     }).toList();
+  }
+
+  /// Merges and sorts messages chronologically ascending (oldest first).
+  /// Deduplicates by message id to prevent duplicate rendering from retries,
+  /// polling, or backlog replay.
+  void _mergeAndSortMessages(List<Message> incoming) {
+    if (incoming.isEmpty) return;
+    final map = <String, Message>{};
+    for (final m in _messages) {
+      map[m.id] = m;
+    }
+    for (final m in incoming) {
+      map[m.id] = m;
+    }
+    final sorted = map.values.toList()..sort(Message.compareChronological);
+    _messages = sorted;
+  }
+
+  /// Inserts or updates a message in sorted chronological order.
+  void _upsertMessage(Message msg) {
+    final idx = _messages.indexWhere((m) => m.id == msg.id);
+    if (idx != -1) {
+      _messages[idx] = msg;
+    } else {
+      _messages.add(msg);
+    }
+    _messages.sort(Message.compareChronological);
+  }
+
+  /// Ingests messages safely for the active conversation.
+  /// Useful for webhook updates, polling, or backlog replay.
+  void ingestMessages(String conversationId, List<Message> incoming) {
+    if (_selectedConversation?.id != conversationId || incoming.isEmpty) return;
+    _mergeAndSortMessages(incoming);
+    notifyListeners();
+  }
+
+  /// Clears active conversation selection and messages
+  void clearSelectedConversation() {
+    _selectedConversation = null;
+    _messages = [];
+    _messagesError = null;
+    notifyListeners();
   }
 
   void clearErrors() {
@@ -133,7 +182,9 @@ class MerchantProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final overview = await merchantRepository.getDashboardOverview(businessId);
+      final overview = await merchantRepository.getDashboardOverview(
+        businessId,
+      );
       _dashboardOverview = overview;
       _lastRequestId = null;
     } on ApiErrorEnvelope catch (e) {
@@ -142,21 +193,24 @@ class MerchantProvider extends ChangeNotifier {
       _lastRequestId = e.requestId;
       final code = e.error.code.toLowerCase();
       final serverMessage = e.error.message.toLowerCase();
-      _dashboardRequiresLogin = e.statusCode == 401 ||
+      _dashboardRequiresLogin =
+          e.statusCode == 401 ||
           code.contains('unauthorized') ||
           code.contains('invalid_token') ||
           code.contains('token_expired') ||
           serverMessage.contains('invalid access token');
-      final safeArabicMessage = e.error.message.length <= 160 &&
+      final safeArabicMessage =
+          e.error.message.length <= 160 &&
           RegExp(r'[ء-ي]').hasMatch(e.error.message);
       _dashboardError = _dashboardRequiresLogin
           ? 'انتهت صلاحية جلسة الدخول. سجّل دخولك من جديد.'
           : safeArabicMessage
-              ? e.error.message
-              : 'تعذر جلب بيانات النشاط حاليًا. حاول مرة أخرى.';
+          ? e.error.message
+          : 'تعذر جلب بيانات النشاط حاليًا. حاول مرة أخرى.';
     } on NetworkException {
       _dashboardOverview = null;
-      _dashboardError = 'تعذر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.';
+      _dashboardError =
+          'تعذر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.';
     } catch (_) {
       _dashboardOverview = null;
       _dashboardError = 'تعذر تحميل لوحة النشاط. حاول مرة أخرى.';
@@ -346,13 +400,16 @@ class MerchantProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final effectiveState = state ??
+      final effectiveState =
+          state ??
           (_conversationStateFilter != 'all' ? _conversationStateFilter : null);
-      final effectiveOwnership = ownership ??
+      final effectiveOwnership =
+          ownership ??
           (_conversationOwnershipFilter != 'all'
               ? _conversationOwnershipFilter
               : null);
-      final effectiveChannel = channel ??
+      final effectiveChannel =
+          channel ??
           (_conversationChannelFilter != 'all'
               ? _conversationChannelFilter
               : null);
@@ -380,6 +437,10 @@ class MerchantProvider extends ChangeNotifier {
     required String businessId,
     required String conversationId,
   }) async {
+    // Clear previous conversation messages immediately to avoid visual leak
+    if (_selectedConversation?.id != conversationId) {
+      _messages = [];
+    }
     _isLoadingMessages = true;
     _messagesError = null;
     notifyListeners();
@@ -401,12 +462,21 @@ class MerchantProvider extends ChangeNotifier {
           )
           .catchError((_) => conv);
 
-      // Fetch messages
+      // Fetch messages (API returns descending order: newest first)
       final msgs = await merchantRepository.listMessages(
         businessId: businessId,
         conversationId: conversationId,
       );
-      _messages = msgs;
+
+      // Ensure conversation has not changed while network call was pending
+      if (_selectedConversation?.id == conversationId) {
+        final uniqueMap = <String, Message>{};
+        for (final m in msgs) {
+          uniqueMap[m.id] = m;
+        }
+        _messages = uniqueMap.values.toList()
+          ..sort(Message.compareChronological);
+      }
     } on ApiErrorEnvelope catch (e) {
       _messagesError = e.error.message;
       _lastRequestId = e.requestId;
@@ -423,6 +493,7 @@ class MerchantProvider extends ChangeNotifier {
     required String businessId,
     required String conversationId,
     required String text,
+    String? idempotencyKey,
   }) async {
     if (text.trim().isEmpty) return false;
     _isPerformingAction = true;
@@ -434,8 +505,11 @@ class MerchantProvider extends ChangeNotifier {
         businessId: businessId,
         conversationId: conversationId,
         text: text.trim(),
+        idempotencyKey: idempotencyKey,
       );
-      _messages.add(msg);
+      if (_selectedConversation?.id == conversationId) {
+        _upsertMessage(msg);
+      }
       _isPerformingAction = false;
       notifyListeners();
       return true;
@@ -458,6 +532,7 @@ class MerchantProvider extends ChangeNotifier {
     required String businessId,
     required String conversationId,
     required String text,
+    String? idempotencyKey,
   }) async {
     if (text.trim().isEmpty) return false;
     _isPerformingAction = true;
@@ -470,8 +545,11 @@ class MerchantProvider extends ChangeNotifier {
         conversationId: conversationId,
         text: text.trim(),
         ifMatch: _selectedConversation?.resourceVersion,
+        idempotencyKey: idempotencyKey,
       );
-      _messages.add(note);
+      if (_selectedConversation?.id == conversationId) {
+        _upsertMessage(note);
+      }
       _isPerformingAction = false;
       notifyListeners();
       return true;
@@ -494,6 +572,7 @@ class MerchantProvider extends ChangeNotifier {
     required String businessId,
     required String conversationId,
     required String assigneePrincipalId,
+    String? idempotencyKey,
   }) async {
     _isPerformingAction = true;
     _actionError = null;
@@ -505,6 +584,7 @@ class MerchantProvider extends ChangeNotifier {
         conversationId: conversationId,
         assigneePrincipalId: assigneePrincipalId,
         ifMatch: _selectedConversation?.resourceVersion,
+        idempotencyKey: idempotencyKey,
       );
       _selectedConversation = updated;
       final idx = _conversations.indexWhere((c) => c.id == conversationId);
@@ -532,6 +612,7 @@ class MerchantProvider extends ChangeNotifier {
     required String conversationId,
     List<String>? add,
     List<String>? remove,
+    String? idempotencyKey,
   }) async {
     _isPerformingAction = true;
     _actionError = null;
@@ -544,6 +625,7 @@ class MerchantProvider extends ChangeNotifier {
         add: add,
         remove: remove,
         ifMatch: _selectedConversation?.resourceVersion,
+        idempotencyKey: idempotencyKey,
       );
       _selectedConversation = updated;
       final idx = _conversations.indexWhere((c) => c.id == conversationId);
@@ -573,6 +655,7 @@ class MerchantProvider extends ChangeNotifier {
     String? priority,
     String? ownership,
     String? aiModeOverride,
+    String? idempotencyKey,
   }) async {
     _isPerformingAction = true;
     _actionError = null;
@@ -587,6 +670,7 @@ class MerchantProvider extends ChangeNotifier {
         ownership: ownership,
         aiModeOverride: aiModeOverride,
         ifMatch: _selectedConversation?.resourceVersion,
+        idempotencyKey: idempotencyKey,
       );
       _selectedConversation = updated;
       final idx = _conversations.indexWhere((c) => c.id == conversationId);
@@ -626,6 +710,7 @@ class MerchantProvider extends ChangeNotifier {
     required String businessId,
     required String conversationId,
     required String cannedReplyId,
+    String? idempotencyKey,
   }) async {
     _isPerformingAction = true;
     _actionError = null;
@@ -637,8 +722,11 @@ class MerchantProvider extends ChangeNotifier {
         conversationId: conversationId,
         cannedReplyId: cannedReplyId,
         ifMatch: _selectedConversation?.resourceVersion,
+        idempotencyKey: idempotencyKey,
       );
-      _messages.add(msg);
+      if (_selectedConversation?.id == conversationId) {
+        _upsertMessage(msg);
+      }
       _isPerformingAction = false;
       notifyListeners();
       return true;
@@ -653,6 +741,39 @@ class MerchantProvider extends ChangeNotifier {
       _isPerformingAction = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  /// Load older messages with cursor pagination without wiping existing messages
+  Future<void> loadMoreMessages({
+    required String businessId,
+    String? cursor,
+    int limit = 50,
+  }) async {
+    final conversationId = _selectedConversation?.id;
+    if (conversationId == null || _isLoadingMoreMessages) return;
+
+    _isLoadingMoreMessages = true;
+    notifyListeners();
+
+    try {
+      final olderMsgs = await merchantRepository.listMessages(
+        businessId: businessId,
+        conversationId: conversationId,
+        cursor: cursor,
+        limit: limit,
+      );
+      if (_selectedConversation?.id == conversationId && olderMsgs.isNotEmpty) {
+        _mergeAndSortMessages(olderMsgs);
+      }
+    } on ApiErrorEnvelope catch (e) {
+      _messagesError = e.error.message;
+      _lastRequestId = e.requestId;
+    } catch (e) {
+      _messagesError = e.toString();
+    } finally {
+      _isLoadingMoreMessages = false;
+      notifyListeners();
     }
   }
 }

@@ -127,6 +127,7 @@ class FakeMerchantRepository extends MerchantRepository {
     required String businessId,
     required String conversationId,
     required String text,
+    String? idempotencyKey,
   }) async {
     return Message(
       id: 'msg_new',
@@ -146,6 +147,7 @@ class FakeMerchantRepository extends MerchantRepository {
     required String conversationId,
     required String text,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
     return Message(
       id: 'note_new',
@@ -164,6 +166,7 @@ class FakeMerchantRepository extends MerchantRepository {
     required String businessId,
     required String conversationId,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
     return getConversation(
       businessId: businessId,

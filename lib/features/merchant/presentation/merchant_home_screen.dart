@@ -17,6 +17,9 @@ import 'package:mujeeb24_app/features/merchant/presentation/inbox_tab.dart';
 import 'package:mujeeb24_app/features/merchant/providers/merchant_provider.dart';
 import 'package:mujeeb24_app/features/platform/presentation/platform_hub_screen.dart';
 import 'package:mujeeb24_app/features/platform/providers/platform_provider.dart';
+import 'package:mujeeb24_app/features/subscription/presentation/subscription_plans_screen.dart';
+import 'package:mujeeb24_app/features/subscription/presentation/subscription_screen.dart';
+import 'package:mujeeb24_app/features/subscription/providers/subscription_provider.dart';
 import 'package:mujeeb24_app/features/team/presentation/audit_logs_screen.dart';
 import 'package:mujeeb24_app/features/team/presentation/team_screen.dart';
 import 'package:mujeeb24_app/features/team/providers/team_audit_provider.dart';
@@ -32,6 +35,7 @@ class MerchantHomeScreen extends StatefulWidget {
   final ChannelAutomationProvider? channelAutomationProvider;
   final TeamAuditProvider? teamAuditProvider;
   final PlatformProvider? platformProvider;
+  final SubscriptionProvider? subscriptionProvider;
   final AppLocaleProvider localeProvider;
   final VoidCallback onSwitchBusiness;
   final VoidCallback onLogout;
@@ -46,6 +50,7 @@ class MerchantHomeScreen extends StatefulWidget {
     this.channelAutomationProvider,
     this.teamAuditProvider,
     this.platformProvider,
+    this.subscriptionProvider,
     required this.localeProvider,
     required this.onSwitchBusiness,
     required this.onLogout,
@@ -68,6 +73,7 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
     widget.channelAutomationProvider?.addListener(_onStateChange);
     widget.teamAuditProvider?.addListener(_onStateChange);
     widget.platformProvider?.addListener(_onStateChange);
+    widget.subscriptionProvider?.addListener(_onStateChange);
   }
 
   @override
@@ -79,6 +85,7 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
     widget.channelAutomationProvider?.removeListener(_onStateChange);
     widget.teamAuditProvider?.removeListener(_onStateChange);
     widget.platformProvider?.removeListener(_onStateChange);
+    widget.subscriptionProvider?.removeListener(_onStateChange);
     super.dispose();
   }
 
@@ -191,6 +198,34 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
     );
   }
 
+  void _openSubscription() {
+    final business = widget.authProvider.selectedBusiness?.business;
+    if (business == null || widget.subscriptionProvider == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SubscriptionScreen(
+          businessId: business.id,
+          provider: widget.subscriptionProvider!,
+        ),
+      ),
+    );
+  }
+
+  void _openSubscriptionPlans() {
+    final business = widget.authProvider.selectedBusiness?.business;
+    if (business == null || widget.subscriptionProvider == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SubscriptionPlansScreen(
+          businessId: business.id,
+          provider: widget.subscriptionProvider!,
+        ),
+      ),
+    );
+  }
+
   void _openPlatform() {
     if (widget.platformProvider == null) {
       return;
@@ -216,6 +251,7 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
     final tabs = <Widget>[
       DashboardTab(
         merchantProvider: widget.merchantProvider,
+        subscriptionProvider: widget.subscriptionProvider,
         currentBusiness: business,
         onNavigateToInbox: () => setState(() => _currentIndex = 1),
         onNavigateToCustomers: hasCrm
@@ -239,6 +275,10 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
         onNavigateToTeam: widget.teamAuditProvider != null ? _openTeam : null,
         onNavigateToAuditLogs:
             widget.teamAuditProvider != null ? _openAuditLogs : null,
+        onNavigateToSubscription:
+            widget.subscriptionProvider != null ? _openSubscription : null,
+        onNavigateToPlans:
+            widget.subscriptionProvider != null ? _openSubscriptionPlans : null,
         onSessionExpired: widget.onLogout,
       ),
       InboxTab(
@@ -265,6 +305,10 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
         onNavigateToTeam: widget.teamAuditProvider != null ? _openTeam : null,
         onNavigateToAuditLogs:
             widget.teamAuditProvider != null ? _openAuditLogs : null,
+        onNavigateToSubscription:
+            widget.subscriptionProvider != null ? _openSubscription : null,
+        onNavigateToPlans:
+            widget.subscriptionProvider != null ? _openSubscriptionPlans : null,
         onNavigateToPlatform:
             (widget.authProvider.isPlatformAdmin && widget.platformProvider != null)
                 ? _openPlatform
@@ -329,6 +373,8 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
                   _openChannels();
                 case 'team':
                   _openTeam();
+                case 'subscriptions':
+                  _openSubscription();
                 case 'platform':
                   _openPlatform();
                 case 'language':
@@ -370,6 +416,16 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
                     dense: true,
                     leading: const Icon(Icons.groups_outlined),
                     title: Text(strings('team_and_audit')))),
+              if (widget.subscriptionProvider != null)
+                const PopupMenuItem(
+                  value: 'subscriptions',
+                  key: Key('btn_appbar_subscriptions'),
+                  child: ListTile(
+                    dense: true,
+                    leading: Icon(Icons.workspace_premium_outlined),
+                    title: Text('الاشتراك والباقات'),
+                  ),
+                ),
               if (widget.authProvider.isPlatformAdmin &&
                   widget.platformProvider != null)
                 PopupMenuItem(

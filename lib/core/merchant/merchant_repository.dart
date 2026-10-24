@@ -1,9 +1,11 @@
 import 'package:mujeeb24_app/core/api/api_client.dart';
 import 'package:mujeeb24_app/core/models/auth_models.dart';
 import 'package:mujeeb24_app/core/models/merchant_models.dart';
+import 'package:mujeeb24_app/core/models/subscription_models.dart';
 
 /// Merchant Repository implementing Phase 2 operations:
 /// - GET /businesses/{business_id}/dashboard/overview
+/// - GET /businesses/{business_id}/subscription
 /// - GET /businesses/{business_id}
 /// - PATCH /businesses/{business_id}
 /// - GET /businesses/{business_id}/policy
@@ -24,6 +26,10 @@ class MerchantRepository {
 
   MerchantRepository({required this.apiClient});
 
+  String _generateIdempotencyKey(String prefix) {
+    return '${prefix}_${DateTime.now().microsecondsSinceEpoch}';
+  }
+
   /// GET /businesses/{business_id}/dashboard/overview
   Future<DashboardOverview> getDashboardOverview(String businessId) async {
     final response = await apiClient.get(
@@ -32,6 +38,16 @@ class MerchantRepository {
     );
     final data = response['data'] as Map<String, dynamic>;
     return DashboardOverview.fromJson(data);
+  }
+
+  /// GET /businesses/{business_id}/subscription
+  Future<MerchantSubscriptionView> getBusinessSubscription(String businessId) async {
+    final response = await apiClient.get(
+      '/businesses/$businessId/subscription',
+      requiresAuth: true,
+    );
+    final data = response['data'] as Map<String, dynamic>;
+    return MerchantSubscriptionView.fromJson(data);
   }
 
   /// GET /businesses/{business_id}
@@ -53,6 +69,7 @@ class MerchantRepository {
     String? timezone,
     String? verticalType,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
     final body = <String, dynamic>{};
     if (name != null) {
@@ -72,6 +89,9 @@ class MerchantRepository {
     }
 
     final headers = <String, String>{};
+    if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+      headers['Idempotency-Key'] = idempotencyKey;
+    }
     if (ifMatch != null && ifMatch.isNotEmpty) {
       headers['If-Match'] = ifMatch;
     }
@@ -106,6 +126,7 @@ class MerchantRepository {
     bool? allowAutoTransactionDraft,
     bool? allowAutoConfirmation,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
     final body = <String, dynamic>{};
     if (aiMode != null) {
@@ -128,6 +149,9 @@ class MerchantRepository {
     }
 
     final headers = <String, String>{};
+    if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+      headers['Idempotency-Key'] = idempotencyKey;
+    }
     if (ifMatch != null && ifMatch.isNotEmpty) {
       headers['If-Match'] = ifMatch;
     }
@@ -202,6 +226,7 @@ class MerchantRepository {
     String? ownership,
     String? aiModeOverride,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
     final body = <String, dynamic>{};
     if (state != null) body['state'] = state;
@@ -210,6 +235,9 @@ class MerchantRepository {
     if (aiModeOverride != null) body['ai_mode_override'] = aiModeOverride;
 
     final headers = <String, String>{};
+    if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+      headers['Idempotency-Key'] = idempotencyKey;
+    }
     if (ifMatch != null && ifMatch.isNotEmpty) {
       headers['If-Match'] = ifMatch;
     }
@@ -250,10 +278,15 @@ class MerchantRepository {
     required String businessId,
     required String conversationId,
     required String text,
+    String? idempotencyKey,
   }) async {
+    final headers = <String, String>{
+      'Idempotency-Key': idempotencyKey ?? _generateIdempotencyKey('msg'),
+    };
     final response = await apiClient.post(
       '/businesses/$businessId/conversations/$conversationId/messages',
       body: {'text': text.trim()},
+      headers: headers,
       requiresAuth: true,
     );
     final data = response['data'] as Map<String, dynamic>;
@@ -266,8 +299,11 @@ class MerchantRepository {
     required String conversationId,
     required String assigneePrincipalId,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
-    final headers = <String, String>{};
+    final headers = <String, String>{
+      'Idempotency-Key': idempotencyKey ?? _generateIdempotencyKey('assign'),
+    };
     if (ifMatch != null && ifMatch.isNotEmpty) {
       headers['If-Match'] = ifMatch;
     }
@@ -289,12 +325,15 @@ class MerchantRepository {
     List<String>? add,
     List<String>? remove,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
     final body = <String, dynamic>{};
     if (add != null && add.isNotEmpty) body['add'] = add;
     if (remove != null && remove.isNotEmpty) body['remove'] = remove;
 
-    final headers = <String, String>{};
+    final headers = <String, String>{
+      'Idempotency-Key': idempotencyKey ?? _generateIdempotencyKey('labels'),
+    };
     if (ifMatch != null && ifMatch.isNotEmpty) {
       headers['If-Match'] = ifMatch;
     }
@@ -315,8 +354,11 @@ class MerchantRepository {
     required String conversationId,
     required String text,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
-    final headers = <String, String>{};
+    final headers = <String, String>{
+      'Idempotency-Key': idempotencyKey ?? _generateIdempotencyKey('note'),
+    };
     if (ifMatch != null && ifMatch.isNotEmpty) {
       headers['If-Match'] = ifMatch;
     }
@@ -336,8 +378,11 @@ class MerchantRepository {
     required String businessId,
     required String conversationId,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
-    final headers = <String, String>{};
+    final headers = <String, String>{
+      'Idempotency-Key': idempotencyKey ?? _generateIdempotencyKey('read'),
+    };
     if (ifMatch != null && ifMatch.isNotEmpty) {
       headers['If-Match'] = ifMatch;
     }
@@ -373,8 +418,12 @@ class MerchantRepository {
     required String conversationId,
     required String cannedReplyId,
     String? ifMatch,
+    String? idempotencyKey,
   }) async {
-    final headers = <String, String>{};
+    final headers = <String, String>{
+      'Idempotency-Key':
+          idempotencyKey ?? _generateIdempotencyKey('canned_reply'),
+    };
     if (ifMatch != null && ifMatch.isNotEmpty) {
       headers['If-Match'] = ifMatch;
     }

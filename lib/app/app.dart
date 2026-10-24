@@ -14,6 +14,7 @@ import 'package:mujeeb24_app/core/channels/channel_automation_repository.dart';
 import 'package:mujeeb24_app/core/crm/crm_repository.dart';
 import 'package:mujeeb24_app/core/merchant/merchant_repository.dart';
 import 'package:mujeeb24_app/core/platform/platform_repository.dart';
+import 'package:mujeeb24_app/core/subscription/subscription_repository.dart';
 import 'package:mujeeb24_app/core/team/team_audit_repository.dart';
 import 'package:mujeeb24_app/core/transactions/transaction_repository.dart';
 import 'package:mujeeb24_app/features/auth/presentation/invitation_screen.dart';
@@ -25,6 +26,7 @@ import 'package:mujeeb24_app/features/crm/providers/crm_provider.dart';
 import 'package:mujeeb24_app/features/merchant/presentation/merchant_home_screen.dart';
 import 'package:mujeeb24_app/features/merchant/providers/merchant_provider.dart';
 import 'package:mujeeb24_app/features/platform/providers/platform_provider.dart';
+import 'package:mujeeb24_app/features/subscription/providers/subscription_provider.dart';
 import 'package:mujeeb24_app/features/team/providers/team_audit_provider.dart';
 import 'package:mujeeb24_app/features/transactions/providers/transaction_provider.dart';
 import 'package:mujeeb24_app/features/workspace/presentation/business_selection_screen.dart';
@@ -59,6 +61,8 @@ class _MujeebAppState extends State<MujeebApp> {
   late final TeamAuditProvider _teamAuditProvider;
   late final PlatformRepository _platformRepository;
   late final PlatformProvider _platformProvider;
+  late final SubscriptionRepository _subscriptionRepository;
+  late final SubscriptionProvider _subscriptionProvider;
   final AppLocaleProvider _localeProvider = AppLocaleProvider();
 
   final DeepLinkService _deepLinkService = DeepLinkService();
@@ -81,6 +85,7 @@ class _MujeebAppState extends State<MujeebApp> {
     _channelAutomationRepository = ChannelAutomationRepository(apiClient: _apiClient);
     _teamAuditRepository = TeamAuditRepository(apiClient: _apiClient);
     _platformRepository = PlatformRepository(apiClient: _apiClient);
+    _subscriptionRepository = SubscriptionRepository(apiClient: _apiClient);
     _authProvider = AuthProvider(
       authRepository: _authRepository,
       workspaceRepository: _workspaceRepository,
@@ -103,6 +108,9 @@ class _MujeebAppState extends State<MujeebApp> {
     );
     _platformProvider = PlatformProvider(
       repository: _platformRepository,
+    );
+    _subscriptionProvider = SubscriptionProvider(
+      repository: _subscriptionRepository,
     );
 
     _apiClient.onSessionExpired = _authProvider.markSessionExpired;
@@ -129,6 +137,7 @@ class _MujeebAppState extends State<MujeebApp> {
     _channelAutomationProvider.dispose();
     _teamAuditProvider.dispose();
     _platformProvider.dispose();
+    _subscriptionProvider.dispose();
     _deepLinkService.dispose();
     _localeProvider.dispose();
     super.dispose();
@@ -232,6 +241,7 @@ class _MujeebAppState extends State<MujeebApp> {
           channelAutomationProvider: _channelAutomationProvider,
           teamAuditProvider: _teamAuditProvider,
           platformProvider: _platformProvider,
+          subscriptionProvider: _subscriptionProvider,
           localeProvider: _localeProvider,
           onSwitchBusiness: () {
             setState(() => _currentRoute = AppRoute.businessSelection);

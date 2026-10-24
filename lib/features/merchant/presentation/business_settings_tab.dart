@@ -13,6 +13,8 @@ class BusinessSettingsTab extends StatefulWidget {
   final VoidCallback? onNavigateToTeam;
   final VoidCallback? onNavigateToAuditLogs;
   final VoidCallback? onNavigateToPlatform;
+  final VoidCallback? onNavigateToSubscription;
+  final VoidCallback? onNavigateToPlans;
 
   const BusinessSettingsTab({
     super.key,
@@ -24,6 +26,8 @@ class BusinessSettingsTab extends StatefulWidget {
     this.onNavigateToTeam,
     this.onNavigateToAuditLogs,
     this.onNavigateToPlatform,
+    this.onNavigateToSubscription,
+    this.onNavigateToPlans,
   });
 
   @override
@@ -414,6 +418,54 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
                 subtitle: Text(strings('platform_subtitle')),
                 trailing: const Icon(Icons.chevron_left_rounded),
                 onTap: widget.onNavigateToPlatform,
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Subscription & Billing Section
+          if (widget.onNavigateToSubscription != null ||
+              widget.onNavigateToPlans != null) ...[
+            _buildSectionHeader(
+              'الاشتراك والفوترة',
+              Icons.workspace_premium_rounded,
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: [
+                  if (widget.onNavigateToSubscription != null)
+                    ListTile(
+                      key: const Key('tile_subscription_management'),
+                      leading: const Icon(
+                        Icons.donut_large_rounded,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('الاشتراك الحالي ومتابعة الحصص'),
+                      subtitle: const Text(
+                        'عرض باقة المتجر واستهلاك ردود الذكاء الاصطناعي والقنوات',
+                      ),
+                      trailing: const Icon(Icons.chevron_left_rounded),
+                      onTap: widget.onNavigateToSubscription,
+                    ),
+                  if (widget.onNavigateToPlans != null) ...[
+                    if (widget.onNavigateToSubscription != null)
+                      const Divider(height: 1),
+                    ListTile(
+                      key: const Key('tile_subscription_plans'),
+                      leading: const Icon(
+                        Icons.view_carousel_rounded,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('ترقية الباقة ومقارنة الأسعار'),
+                      subtitle: const Text(
+                        'مقارنة باقات بداية، متجر، نمو، احتراف، وأعمال',
+                      ),
+                      trailing: const Icon(Icons.chevron_left_rounded),
+                      onTap: widget.onNavigateToPlans,
+                    ),
+                  ],
+                ],
               ),
             ),
             const SizedBox(height: 24),

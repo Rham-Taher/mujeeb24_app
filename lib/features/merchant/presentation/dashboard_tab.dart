@@ -4,9 +4,12 @@ import 'package:mujeeb24_app/app/theme/app_theme.dart';
 import 'package:mujeeb24_app/core/channels/channel_presentation.dart';
 import 'package:mujeeb24_app/core/models/auth_models.dart';
 import 'package:mujeeb24_app/features/merchant/providers/merchant_provider.dart';
+import 'package:mujeeb24_app/features/subscription/presentation/subscription_quota_card.dart';
+import 'package:mujeeb24_app/features/subscription/providers/subscription_provider.dart';
 
 class DashboardTab extends StatefulWidget {
   final MerchantProvider merchantProvider;
+  final SubscriptionProvider? subscriptionProvider;
   final Business? currentBusiness;
   final VoidCallback onNavigateToInbox;
   final VoidCallback? onNavigateToCustomers;
@@ -17,11 +20,14 @@ class DashboardTab extends StatefulWidget {
   final VoidCallback? onNavigateToChannels;
   final VoidCallback? onNavigateToTeam;
   final VoidCallback? onNavigateToAuditLogs;
+  final VoidCallback? onNavigateToSubscription;
+  final VoidCallback? onNavigateToPlans;
   final VoidCallback? onSessionExpired;
 
   const DashboardTab({
     super.key,
     required this.merchantProvider,
+    this.subscriptionProvider,
     required this.currentBusiness,
     required this.onNavigateToInbox,
     this.onNavigateToCustomers,
@@ -32,6 +38,8 @@ class DashboardTab extends StatefulWidget {
     this.onNavigateToChannels,
     this.onNavigateToTeam,
     this.onNavigateToAuditLogs,
+    this.onNavigateToSubscription,
+    this.onNavigateToPlans,
     this.onSessionExpired,
   });
 
@@ -44,12 +52,14 @@ class _DashboardTabState extends State<DashboardTab> {
   void initState() {
     super.initState();
     widget.merchantProvider.addListener(_onStateChange);
+    widget.subscriptionProvider?.addListener(_onStateChange);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
   @override
   void dispose() {
     widget.merchantProvider.removeListener(_onStateChange);
+    widget.subscriptionProvider?.removeListener(_onStateChange);
     super.dispose();
   }
 
@@ -61,6 +71,7 @@ class _DashboardTabState extends State<DashboardTab> {
     final businessId = widget.currentBusiness?.id;
     if (businessId != null && businessId.isNotEmpty) {
       widget.merchantProvider.loadDashboardOverview(businessId);
+      widget.subscriptionProvider?.loadSubscription(businessId);
     }
   }
 
@@ -164,6 +175,20 @@ class _DashboardTabState extends State<DashboardTab> {
                 strings,
               ),
               const SizedBox(height: 12),
+            ],
+
+            // Subscription & Quotas Metering Card
+            if (widget.subscriptionProvider != null || overview.subscription != null) ...[
+              SubscriptionQuotaCard(
+                subscription: widget.subscriptionProvider?.subscription ??
+                    overview.subscription,
+                isLoading: widget.subscriptionProvider?.isLoading ?? false,
+                error: widget.subscriptionProvider?.error,
+                onRetry: _loadData,
+                onUpgradeOrRenew: widget.onNavigateToPlans ??
+                    widget.onNavigateToSubscription,
+              ),
+              const SizedBox(height: 16),
             ],
 
             // Channel Connectivity Banner

@@ -308,6 +308,7 @@ void main() {
             request.url.path,
             '/api/v1/businesses/biz_123/conversations/conv_1/messages',
           );
+          expect(request.headers.containsKey('Idempotency-Key'), isTrue);
           final parsed = jsonDecode(request.body) as Map<String, dynamic>;
           expect(parsed['text'], 'مرحباً بك عميلنا العزيز');
 
@@ -336,6 +337,7 @@ void main() {
             request.url.path,
             '/api/v1/businesses/biz_123/conversations/conv_1/notes',
           );
+          expect(request.headers.containsKey('Idempotency-Key'), isTrue);
           final parsed = jsonDecode(request.body) as Map<String, dynamic>;
           expect(parsed['text'], 'ملاحظة خاصة: العميل يطلب تخفيض');
 
@@ -363,6 +365,7 @@ void main() {
             request.url.path,
             '/api/v1/businesses/biz_123/conversations/conv_1/canned-replies/cr_99/send',
           );
+          expect(request.headers.containsKey('Idempotency-Key'), isTrue);
 
           final body = {
             'data': {
@@ -422,6 +425,7 @@ void main() {
             request.url.path,
             '/api/v1/businesses/biz_123/conversations/conv_1/assign',
           );
+          expect(request.headers.containsKey('Idempotency-Key'), isTrue);
           final parsed = jsonDecode(request.body) as Map<String, dynamic>;
           expect(parsed['assignee_principal_id'], 'p_new');
 
@@ -452,6 +456,7 @@ void main() {
             request.url.path,
             '/api/v1/businesses/biz_123/conversations/conv_1/labels',
           );
+          expect(request.headers.containsKey('Idempotency-Key'), isTrue);
           final parsed = jsonDecode(request.body) as Map<String, dynamic>;
           expect(parsed['add'], ['urgent']);
 

@@ -1,6 +1,8 @@
 /// Data models for Phase 2: Merchant Operations (Dashboard, Policy, Conversations, Messages, Notes, Canned Replies)
 library;
 
+import 'package:mujeeb24_app/core/models/subscription_models.dart';
+
 /// GET /businesses/{business_id}/dashboard/overview
 class DashboardOverview {
   final int openConversations;
@@ -9,6 +11,7 @@ class DashboardOverview {
   final int newLeads;
   final int transactionsNeedingReview;
   final Map<String, int> connections;
+  final MerchantSubscriptionView? subscription;
 
   const DashboardOverview({
     required this.openConversations,
@@ -17,6 +20,7 @@ class DashboardOverview {
     required this.newLeads,
     required this.transactionsNeedingReview,
     this.connections = const {},
+    this.subscription,
   });
 
   factory DashboardOverview.fromJson(Map<String, dynamic> json) {
@@ -30,6 +34,8 @@ class DashboardOverview {
       });
     }
 
+    final subJson = json['subscription'] as Map<String, dynamic>?;
+
     return DashboardOverview(
       openConversations: (json['open_conversations'] as num?)?.toInt() ?? 0,
       waitingHuman: (json['waiting_human'] as num?)?.toInt() ?? 0,
@@ -38,6 +44,9 @@ class DashboardOverview {
       transactionsNeedingReview:
           (json['transactions_needing_review'] as num?)?.toInt() ?? 0,
       connections: parsedConnections,
+      subscription: subJson != null
+          ? MerchantSubscriptionView.fromJson(subJson)
+          : null,
     );
   }
 
@@ -48,6 +57,7 @@ class DashboardOverview {
     'new_leads': newLeads,
     'transactions_needing_review': transactionsNeedingReview,
     'connections': connections,
+    if (subscription != null) 'subscription': subscription!.toJson(),
   };
 }
 
@@ -240,6 +250,59 @@ class Message {
     if (createdAt != null) 'created_at': createdAt,
     if (occurredAt != null) 'occurred_at': occurredAt,
   };
+
+  /// Effective timestamp for sorting and display:
+  /// Uses occurredAt (event timestamp from channel/client) first,
+  /// falling back to createdAt (server ingestion timestamp).
+  DateTime? get effectiveDateTime {
+    final raw = occurredAt ?? createdAt;
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  /// Formatted time for UI display (HH:mm)
+  String get displayTime {
+    final dt = effectiveDateTime?.toLocal();
+    if (dt != null) {
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '$h:$m';
+    }
+    final raw = occurredAt ?? createdAt;
+    if (raw != null && raw.length >= 16) {
+      return raw.substring(11, 16);
+    }
+    return '';
+  }
+
+  /// Deterministic chronological comparator:
+  /// Sorts in ASCENDING order (oldest first, newest last) for chat stream rendering.
+  /// 1. Compares effectiveDateTime (occurredAt ?? createdAt).
+  /// 2. If equal, breaks tie with createdAt.
+  /// 3. If still equal, breaks tie with message ID.
+  static int compareChronological(Message a, Message b) {
+    final aDt = a.effectiveDateTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final bDt = b.effectiveDateTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final dateComp = aDt.compareTo(bDt);
+    if (dateComp != 0) return dateComp;
+
+    // Secondary tie-breaker: fallback to createdAt if occurredAt were identical
+    if (a.createdAt != null &&
+        b.createdAt != null &&
+        a.createdAt != b.createdAt) {
+      final aCreated =
+          DateTime.tryParse(a.createdAt!) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      final bCreated =
+          DateTime.tryParse(b.createdAt!) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      final createdComp = aCreated.compareTo(bCreated);
+      if (createdComp != 0) return createdComp;
+    }
+
+    // Deterministic tertiary tie-breaker: message ID
+    return a.id.compareTo(b.id);
+  }
 }
 
 /// GET /businesses/{business_id}/canned-replies
