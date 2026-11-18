@@ -91,12 +91,15 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
     String strings(String key) => AppStrings.get(key, context);
 
     return Scaffold(
-      backgroundColor: AppColors.surfaceCanvas,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           isEditing ? strings('lead_details') : strings('create_lead'),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

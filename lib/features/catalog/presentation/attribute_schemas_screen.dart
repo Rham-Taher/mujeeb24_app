@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/common_ui_widgets.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/catalog_models.dart';
 import '../providers/catalog_provider.dart';
@@ -90,14 +91,14 @@ class _AttributeSchemasScreenState extends State<AttributeSchemasScreen> {
         return 'أدخل اسم المعلومة التي أضفت لها اختيارات أو احذفها.';
       }
       if (label.isEmpty) continue;
-      if (!labels.add(label)) return 'اسم المعلومة مكرر: ${label}';
+      if (!labels.add(label)) return 'اسم المعلومة مكرر: $label';
       if (label.startsWith('attr_') || label.length > 120) {
         return 'اختر اسم معلومة واضحًا مثل اللون أو الضمان.';
       }
       if (['select', 'multi_select'].contains(draft.dataType)) {
-        if (options.isEmpty) return 'أضف اختيارات للمعلومة ${label}';
+        if (options.isEmpty) return 'أضف اختيارات للمعلومة $label';
         if (options.toSet().length != options.length) {
-          return 'لا تكرر الاختيارات في ${label}';
+          return 'لا تكرر الاختيارات في $label';
         }
       }
     }
@@ -146,8 +147,10 @@ class _AttributeSchemasScreenState extends State<AttributeSchemasScreen> {
       if (result != null) _creating = false;
     });
     if (result != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حفظ قالب المواصفات')));
+      showAppAlertDialog(
+        context,
+        message: 'تم حفظ قالب المواصفات',
+      );
     }
   }
 
@@ -155,21 +158,37 @@ class _AttributeSchemasScreenState extends State<AttributeSchemasScreen> {
   Widget build(BuildContext context) {
     final provider = widget.catalogProvider;
     return Scaffold(
-      appBar: AppBar(title: const Text('قوالب المواصفات')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('قوالب المواصفات',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+      ),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: provider,
           builder: (context, _) => Column(children: [
             Expanded(child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xl),
               children: [
                 if (!_creating) ...[
                   const Text('قوالب المواصفات',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19)),
                   const SizedBox(height: 8),
-                  const Text('جهّز أسئلة واضحة مثل اللون وحجم الذاكرة. مجيب يحتفظ بالمفاتيح الداخلية بعيدًا عن التاجر.'),
+                  const Text('جهّز أسئلة واضحة مثل اللون وحجم الذاكرة. مجيب يحتفظ بالمفاتيح الداخلية بعيدًا عن التاجر.',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
                     onPressed: _newSchema,
                     icon: const Icon(Icons.add_rounded),
                     label: const Text('إنشاء قالب مواصفات'),
@@ -184,22 +203,36 @@ class _AttributeSchemasScreenState extends State<AttributeSchemasScreen> {
                   ],
                   const SizedBox(height: 16),
                   if (provider.attributeSchemas.isEmpty)
-                    const Text('لا توجد قوالب محفوظة حاليًا'),
+                    const Text('لا توجد قوالب محفوظة حاليًا',
+                      style: TextStyle(color: AppColors.textMuted)),
                   for (final schema in provider.attributeSchemas)
-                    Card(child: Padding(
-                      padding: const EdgeInsets.all(14),
+                    Container(
+                      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.borderHairline),
+                        boxShadow: AppShadows.subtle,
+                      ),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(schema.name, style: const TextStyle(
-                            fontWeight: FontWeight.bold)),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: AppColors.onSurface,
+                          )),
                           const SizedBox(height: 8),
                           for (final definition in schema.definitions)
                             Padding(padding: const EdgeInsets.only(bottom: 5),
-                              child: Text('${definition.label} — ${_typeLabels[definition.dataType] ?? 'تفاصيل محفوظة'}${definition.required ? ' (مطلوب)' : ''}')),
+                              child: Text(
+                                '${definition.label} — ${_typeLabels[definition.dataType] ?? 'تفاصيل محفوظة'}${definition.required ? ' (مطلوب)' : ''}',
+                                style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
+                              )),
                         ],
                       ),
-                    )),
+                    ),
                 ] else ...[
                   const Text('إنشاء قالب مواصفات',
                     style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),

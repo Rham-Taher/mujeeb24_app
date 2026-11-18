@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/common_ui_widgets.dart';
 import '../../../app/localization/app_localizations.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/catalog_models.dart';
@@ -298,8 +299,11 @@ class _CatalogItemFormScreenState extends State<CatalogItemFormScreen> {
   void _nextStep() {
     if (_step == 0 && !_formKey.currentState!.validate()) return;
     if (_step == 0 && _itemTypeController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('اختر نوع المنتج أو الخدمة')));
+      showAppAlertDialog(
+        context,
+        message: 'اختر نوع المنتج أو الخدمة',
+        isError: true,
+      );
       return;
     }
     if (_step == 0) {
@@ -325,8 +329,10 @@ class _CatalogItemFormScreenState extends State<CatalogItemFormScreen> {
           (needsUnit && _unitController.text.trim().isEmpty) ||
           ((needsAmount || (_selectedPricingMode == 'dynamic' && amount != null)) &&
               !RegExp(r'^[A-Za-z]{3}$').hasMatch(_currencyController.text.trim()))) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('راجع السعر والعملة وحدد حالة التوفر قبل المتابعة')),
+        showAppAlertDialog(
+          context,
+          message: 'راجع السعر والعملة وحدد حالة التوفر قبل المتابعة',
+          isError: true,
         );
         return;
       }
@@ -339,8 +345,11 @@ class _CatalogItemFormScreenState extends State<CatalogItemFormScreen> {
     if (_isSaving || !_formKey.currentState!.validate()) return;
     if (!widget.catalogProvider.hasLoadedContract &&
         !(!_isEditing && _draftWithoutPricing)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('حمّل اختيارات السعر أو احفظ المنتج مسودة دون سعر.')));
+      showAppAlertDialog(
+        context,
+        message: 'حمّل اختيارات السعر أو احفظ المنتج مسودة دون سعر.',
+        isError: true,
+      );
       return;
     }
     final attributesError = _validateAttributes();
@@ -430,25 +439,18 @@ class _CatalogItemFormScreenState extends State<CatalogItemFormScreen> {
     if (mounted) {
       setState(() => _isSaving = false);
       if (result != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isEditing
-                  ? strings('item_updated_success')
-                  : strings('item_created_success'),
-            ),
-            backgroundColor: AppColors.statusSuccess,
-          ),
+        showAppAlertDialog(
+          context,
+          message: _isEditing
+              ? strings('item_updated_success')
+              : strings('item_created_success'),
         );
         Navigator.of(context).pop(result);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.catalogProvider.actionError ?? strings('request_failed'),
-            ),
-            backgroundColor: AppColors.statusError,
-          ),
+        showAppAlertDialog(
+          context,
+          message: widget.catalogProvider.actionError ?? strings('request_failed'),
+          isError: true,
         );
       }
     }
@@ -462,7 +464,11 @@ class _CatalogItemFormScreenState extends State<CatalogItemFormScreen> {
     final schemas = widget.catalogProvider.attributeSchemas;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: Text(
           _isEditing ? strings('edit_item') : strings('create_item'),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -514,8 +520,7 @@ class _CatalogItemFormScreenState extends State<CatalogItemFormScreen> {
 
             // Use the same merchant vocabulary in create and edit.
             DropdownButtonFormField<String>(
-              key: ValueKey('item-type-' + (_customItemType ? 'custom' :
-                _itemTypeController.text.trim())),
+              key: ValueKey('item-type-${_customItemType ? 'custom' : _itemTypeController.text.trim()}'),
               initialValue: _customItemType ? 'custom' :
                 _itemTypeController.text.trim(),
               isExpanded: true,
@@ -931,8 +936,14 @@ class _CatalogItemFormScreenState extends State<CatalogItemFormScreen> {
               Text('راجع جميع المعلومات قبل الحفظ',
                 style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 12),
-              Card(child: Padding(
-                padding: const EdgeInsets.all(16),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: AppColors.borderHairline),
+                  boxShadow: AppShadows.subtle,
+                ),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -970,7 +981,7 @@ class _CatalogItemFormScreenState extends State<CatalogItemFormScreen> {
                     Text('موافقة الموظف: ${_requiresConfirmation ? 'مطلوبة قبل التأكيد' : 'حسب سياسات النشاط'}'),
                   ],
                 ),
-              )),
+              ),
               const SizedBox(height: 10),
               const Text('سيُحفظ المنتج كمسودة. الحفظ لا يفعّل الرد الآلي عليه تلقائيًا.',
                 style: TextStyle(color: AppColors.textMuted)),

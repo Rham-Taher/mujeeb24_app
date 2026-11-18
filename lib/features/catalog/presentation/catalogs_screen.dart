@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/common_ui_widgets.dart';
 import '../../../app/localization/app_localizations.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/catalog_models.dart';
@@ -50,6 +51,7 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
       builder: (ctx) {
         String strings(String key) => AppStrings.get(key, context);
         return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
           title: Text(strings('create_catalog')),
           content: Form(
             key: formKey,
@@ -61,7 +63,13 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                     controller: nameController,
                     decoration: InputDecoration(
                       labelText: '${strings('catalog_name')} *',
-                      border: const OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderSide: const BorderSide(color: AppColors.borderHairline),
+                      ),
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
@@ -76,7 +84,13 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                     maxLines: 3,
                     decoration: InputDecoration(
                       labelText: strings('catalog_description'),
-                      border: const OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderSide: const BorderSide(color: AppColors.borderHairline),
+                      ),
                     ),
                   ),
                 ],
@@ -89,10 +103,16 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
               child: Text(strings('cancel_action')),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 Navigator.of(ctx).pop();
-                final messenger = ScaffoldMessenger.of(context);
 
                 final created = await widget.catalogProvider.createCatalog(
                   widget.businessId,
@@ -106,21 +126,16 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
 
                 if (!mounted) return;
                 if (created != null) {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(strings('catalog_created_success')),
-                      backgroundColor: AppColors.statusSuccess,
-                    ),
+                  showAppAlertDialog(
+                    context,
+                    message: strings('catalog_created_success'),
                   );
                 } else {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        widget.catalogProvider.actionError ??
-                            strings('request_failed'),
-                      ),
-                      backgroundColor: AppColors.statusError,
-                    ),
+                  showAppAlertDialog(
+                    context,
+                    message: widget.catalogProvider.actionError ??
+                        strings('request_failed'),
+                    isError: true,
                   );
                 }
               },
@@ -146,6 +161,7 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
               title: Text(strings('edit_catalog')),
               content: Form(
                 key: formKey,
@@ -157,7 +173,13 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                         controller: nameController,
                         decoration: InputDecoration(
                           labelText: '${strings('catalog_name')} *',
-                          border: const OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderSide: const BorderSide(color: AppColors.borderHairline),
+                          ),
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
@@ -172,7 +194,13 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                         maxLines: 3,
                         decoration: InputDecoration(
                           labelText: strings('catalog_description'),
-                          border: const OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderSide: const BorderSide(color: AppColors.borderHairline),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -180,7 +208,13 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                         initialValue: selectedStatus,
                         decoration: InputDecoration(
                           labelText: strings('catalog_status'),
-                          border: const OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderSide: const BorderSide(color: AppColors.borderHairline),
+                          ),
                         ),
                         items: [
                           DropdownMenuItem(
@@ -212,10 +246,16 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                   child: Text(strings('cancel_action')),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
                   onPressed: () async {
                     if (!formKey.currentState!.validate()) return;
                     Navigator.of(ctx).pop();
-                    final messenger = ScaffoldMessenger.of(context);
 
                     final updated = await widget.catalogProvider.updateCatalog(
                       widget.businessId,
@@ -232,21 +272,16 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
 
                     if (!mounted) return;
                     if (updated != null) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(strings('catalog_updated_success')),
-                          backgroundColor: AppColors.statusSuccess,
-                        ),
+                      showAppAlertDialog(
+                        context,
+                        message: strings('catalog_updated_success'),
                       );
                     } else {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            widget.catalogProvider.actionError ??
-                                strings('request_failed'),
-                          ),
-                          backgroundColor: AppColors.statusError,
-                        ),
+                      showAppAlertDialog(
+                        context,
+                        message: widget.catalogProvider.actionError ??
+                            strings('request_failed'),
+                        isError: true,
                       );
                     }
                   },
@@ -296,17 +331,59 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
         final currentFilter = provider.catalogStatusFilter;
 
         return Scaffold(
+          backgroundColor: AppColors.background,
           appBar: AppBar(
-            title: Text(
-              strings('catalogs_title'),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            backgroundColor: AppColors.surfaceCanvas,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            titleSpacing: 16,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Container(
+                color: AppColors.borderHairline,
+                height: 1,
+              ),
+            ),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    strings('catalogs_title'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      color: AppColors.onSurface,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    border: Border.all(color: AppColors.borderHairline),
+                  ),
+                  child: Text(
+                    '${catalogs.length}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.refresh_rounded),
+                icon: const Icon(Icons.refresh_rounded, color: AppColors.onSurfaceVariant),
                 tooltip: strings('refresh'),
                 onPressed: provider.isLoadingCatalogs ? null : _loadCatalogs,
               ),
+              const SizedBox(width: 8),
             ],
           ),
           floatingActionButton: FloatingActionButton.extended(
@@ -315,17 +392,35 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                 : _showCreateCatalogDialog,
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            icon: const Icon(Icons.add_rounded),
-            label: Text(strings('create_catalog')),
+            elevation: 3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 22),
+            label: Text(
+              strings('create_catalog'),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
           ),
           body: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: SizedBox(width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xs),
+                child: SizedBox(
+                  width: double.infinity,
                   child: OutlinedButton.icon(
-                    icon: const Icon(Icons.tune_rounded),
+                    icon: const Icon(Icons.tune_rounded, size: 18),
                     label: const Text('قوالب المواصفات'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.borderHairline),
+                      backgroundColor: AppColors.surfaceCanvas,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => AttributeSchemasScreen(
                         catalogProvider: widget.catalogProvider,
@@ -335,34 +430,35 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                   ),
                 ),
               ),
+
               // Status Filters Bar
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
                 child: Row(
                   children: [
                     _buildFilterChip('all', strings('all_catalogs'), currentFilter),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     _buildFilterChip('active', strings('status_active'), currentFilter),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     _buildFilterChip('draft', strings('status_draft'), currentFilter),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     _buildFilterChip('archived', strings('status_archived'), currentFilter),
                   ],
                 ),
               ),
 
               if (provider.isPerformingAction)
-                const LinearProgressIndicator(color: AppColors.primary),
+                const LinearProgressIndicator(color: AppColors.primary, minHeight: 3),
 
               // Content Area
               Expanded(
                 child: provider.isLoadingCatalogs && catalogs.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(child: CircularProgressIndicator(strokeWidth: 2.5))
                     : provider.catalogsError != null && catalogs.isEmpty
                         ? Center(
                             child: Padding(
-                              padding: const EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(AppSpacing.xl),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -371,15 +467,19 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                                     size: 48,
                                     color: AppColors.statusError,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: AppSpacing.md),
                                   Text(
                                     provider.catalogsError!,
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(color: AppColors.textMuted),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: AppSpacing.md),
                                   ElevatedButton(
                                     onPressed: _loadCatalogs,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                    ),
                                     child: Text(strings('retry')),
                                   ),
                                 ],
@@ -391,12 +491,19 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(
-                                      Icons.inventory_2_outlined,
-                                      size: 56,
-                                      color: AppColors.textMuted,
+                                    Container(
+                                      padding: const EdgeInsets.all(AppSpacing.lg),
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.surfaceContainerLow,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.inventory_2_outlined,
+                                        size: 48,
+                                        color: AppColors.textMuted,
+                                      ),
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: AppSpacing.md),
                                     Text(
                                       strings('no_catalogs'),
                                       style: const TextStyle(
@@ -405,21 +512,26 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                                         color: AppColors.textMuted,
                                       ),
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: AppSpacing.md),
                                     ElevatedButton.icon(
                                       onPressed: _showCreateCatalogDialog,
                                       icon: const Icon(Icons.add_rounded),
                                       label: Text(strings('create_catalog')),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                      ),
                                     ),
                                   ],
                                 ),
                               )
                             : RefreshIndicator(
                                 onRefresh: _loadCatalogs,
+                                color: AppColors.primary,
                                 child: ListView.separated(
-                                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
+                                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, 88),
                                   itemCount: catalogs.length + (provider.catalogsHasMore ? 1 : 0),
-                                  separatorBuilder: (_, index) => const SizedBox(height: 12),
+                                  separatorBuilder: (_, index) => const SizedBox(height: AppSpacing.sm),
                                   itemBuilder: (context, index) {
                                     if (index == catalogs.length) {
                                       return OutlinedButton(
@@ -449,13 +561,21 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
         widget.catalogProvider.setCatalogStatusFilter(key);
         _loadCatalogs();
       },
-      selectedColor: AppColors.primary,
+      selectedColor: AppColors.primaryContainer.withValues(alpha: 0.12),
+      checkmarkColor: AppColors.primary,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : AppColors.onSurface,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
         fontSize: 12,
       ),
-      backgroundColor: AppColors.surfaceSubtle,
+      backgroundColor: AppColors.surfaceCanvas,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        side: BorderSide(
+          color: isSelected ? AppColors.primary : AppColors.borderHairline,
+          width: isSelected ? 1.2 : 0.8,
+        ),
+      ),
     );
   }
 
@@ -468,15 +588,15 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
     final statusLabel =
         widget.catalogProvider.entityContract.labelCatalogStatus(catalog.status);
 
-    return Card(
-      elevation: 0,
-      color: AppColors.surfaceCanvas,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.borderHairline),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCanvas,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.borderHairline),
+        boxShadow: AppShadows.card,
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         onTap: () {
           widget.catalogProvider.selectCatalog(catalog);
           Navigator.of(context).push(
@@ -491,7 +611,7 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -502,16 +622,16 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.primaryContainer.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: const Icon(
                       Icons.menu_book_rounded,
                       color: AppColors.primary,
-                      size: 24,
+                      size: 22,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,7 +639,7 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                         Text(
                           catalog.name,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: AppColors.onSurface,
                           ),
@@ -541,15 +661,15 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.onSurfaceVariant),
                     tooltip: strings('edit_catalog'),
                     onPressed: () => _showEditCatalogDialog(catalog),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.sm),
+              const Divider(height: 1, color: AppColors.borderHairline),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -558,7 +678,7 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: statusBg,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                     child: Text(
                       statusLabel,
@@ -582,7 +702,7 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
                       const SizedBox(width: 4),
                       const Icon(
                         Icons.arrow_forward_ios_rounded,
-                        size: 12,
+                        size: 11,
                         color: AppColors.primary,
                       ),
                     ],

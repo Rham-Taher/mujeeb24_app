@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mujeeb24_app/app/localization/app_localizations.dart';
 import 'package:mujeeb24_app/app/theme/app_theme.dart';
-import 'package:mujeeb24_app/core/channels/channel_presentation.dart';
 import 'package:mujeeb24_app/core/models/auth_models.dart';
+import 'package:mujeeb24_app/core/models/merchant_models.dart';
+import 'package:mujeeb24_app/core/widgets/common_ui_widgets.dart';
 import 'package:mujeeb24_app/features/merchant/providers/merchant_provider.dart';
-import 'package:mujeeb24_app/features/subscription/presentation/subscription_quota_card.dart';
 import 'package:mujeeb24_app/features/subscription/providers/subscription_provider.dart';
 
 class DashboardTab extends StatefulWidget {
@@ -77,358 +78,356 @@ class _DashboardTabState extends State<DashboardTab> {
 
   @override
   Widget build(BuildContext context) {
+    ensureScreenUtilInitialized();
     String strings(String key) => AppStrings.get(key, context);
     final provider = widget.merchantProvider;
     final overview = provider.dashboardOverview;
     final business = widget.currentBusiness;
 
     if (overview == null) {
-      return RefreshIndicator(
+      return SafeArea(
+        child: RefreshIndicator(
         onRefresh: () async => _loadData(),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           children: [
             _buildWelcomeBanner(business, strings),
             const SizedBox(height: 20),
-            Card(
-              elevation: 0,
-              color: AppColors.surfaceCanvas,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-                side: const BorderSide(color: AppColors.borderHairline),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surfaceCanvas,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.borderHairline),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x05000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 28),
-                child: Column(
-                  children: [
-                    Icon(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Column(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: provider.dashboardRequiresLogin
+                          ? AppColors.statusWarningContainer
+                          : provider.isLoadingDashboard
+                              ? AppColors.primaryContainer
+                              : AppColors.surfaceContainerLow,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
                       provider.dashboardRequiresLogin
                           ? Icons.lock_outline_rounded
                           : provider.isLoadingDashboard
                               ? Icons.sync_rounded
                               : Icons.cloud_off_outlined,
-                      size: 40,
+                      size: 32,
                       color: provider.dashboardRequiresLogin
-                          ? AppColors.statusWarning : AppColors.primary,
+                          ? AppColors.statusWarning
+                          : AppColors.primary,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      provider.dashboardRequiresLogin
-                          ? 'يلزم تسجيل الدخول'
-                          : provider.isLoadingDashboard
-                              ? 'جاري تحميل بيانات نشاطك'
-                              : 'تعذر تحديث لوحة النشاط',
-                      style: Theme.of(context).textTheme.titleMedium,
-                      textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    provider.dashboardRequiresLogin
+                        ? 'يلزم تسجيل الدخول'
+                        : provider.isLoadingDashboard
+                            ? 'جاري تحميل بيانات نشاطك'
+                            : 'تعذر تحديث لوحة النشاط',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.onSurface,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      provider.dashboardError ??
-                          'سيتم عرض مؤشرات الأداء بعد استلام البيانات من الخادم.',
-                      style: const TextStyle(color: AppColors.textMuted),
-                      textAlign: TextAlign.center,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    provider.dashboardError ??
+                        'سيتم عرض مؤشرات الأداء بعد استلام البيانات من الخادم.',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textMuted,
+                      height: 1.4,
                     ),
-                    if (provider.isLoadingDashboard) ...[
-                      const SizedBox(height: 16),
-                      const CircularProgressIndicator(),
-                    ] else ...[
-                      const SizedBox(height: 18),
-                      FilledButton.icon(
-                        onPressed: provider.dashboardRequiresLogin
-                            ? widget.onSessionExpired
-                            : _loadData,
-                        icon: Icon(provider.dashboardRequiresLogin
-                            ? Icons.login_rounded : Icons.refresh_rounded),
-                        label: Text(provider.dashboardRequiresLogin
-                            ? 'تسجيل الدخول من جديد'
-                            : 'إعادة المحاولة'),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (provider.isLoadingDashboard) ...[
+                    const SizedBox(height: 20),
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
                       ),
-                    ],
+                      onPressed: provider.dashboardRequiresLogin
+                          ? widget.onSessionExpired
+                          : _loadData,
+                      icon: Icon(
+                        provider.dashboardRequiresLogin
+                            ? Icons.login_rounded
+                            : Icons.refresh_rounded,
+                        size: 18,
+                      ),
+                      label: Text(
+                        provider.dashboardRequiresLogin
+                            ? 'تسجيل الدخول من جديد'
+                            : 'إعادة المحاولة',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
           ],
         ),
-      );
+      ));
     }
 
-    return RefreshIndicator(
-      onRefresh: () async => _loadData(),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTablet = constraints.maxWidth >= 600;
+          return RefreshIndicator(
+            onRefresh: () async => _loadData(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: isTablet ? 24.w.clamp(16.0, 32.0) : 16.w,
+                vertical: 16.h,
+              ),
+              child: isTablet
+                  ? _buildTabletDashboard(business, overview, provider, strings)
+                  : _buildMobileDashboard(business, overview, provider, strings),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMobileDashboard(
+    Business? business,
+    DashboardOverview overview,
+    MerchantProvider provider,
+    String Function(String) strings,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildTopHeaderBar(business, strings),
+        SizedBox(height: 16.h),
+        if (provider.dashboardError != null) ...[
+          _buildErrorCard(
+            provider.dashboardError!,
+            provider.lastRequestId,
+            strings,
+          ),
+          SizedBox(height: 14.h),
+        ],
+        Padding(
+          padding: EdgeInsets.only(bottom: 10.h),
+          child: Text(
+            strings('stats_period_today'),
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+              color: AppColors.onSurface,
+            ),
+          ),
+        ),
+        _buildMetricsBoard(overview, strings),
+        SizedBox(height: 16.h),
+        _buildChannelsStatusCard(overview.connections, strings),
+        SizedBox(height: 16.h),
+        _buildSubscriptionPackageCard(overview, strings),
+        SizedBox(height: 16.h),
+        if (widget.onNavigateToCatalogs != null) ...[
+          _buildQuickActionLink(
+            icon: Icons.inventory_2_rounded,
+            iconColor: AppColors.primary,
+            iconBgColor: AppColors.primaryContainer,
+            title: strings('catalogs_title'),
+            onTap: widget.onNavigateToCatalogs!,
+          ),
+          SizedBox(height: 10.h),
+        ],
+        if (widget.onNavigateToTeam != null) ...[
+          _buildQuickActionLink(
+            key: const Key('quick_link_team'),
+            icon: Icons.groups_rounded,
+            iconColor: const Color(0xFF6B21A8),
+            iconBgColor: const Color(0xFF6B21A8).withValues(alpha: 0.12),
+            title: strings('team_and_audit'),
+            onTap: widget.onNavigateToTeam!,
+          ),
+          SizedBox(height: 10.h),
+        ],
+        if (widget.onNavigateToChannels != null) ...[
+          _buildQuickActionLink(
+            icon: Icons.cable_rounded,
+            iconColor: AppColors.secondary,
+            iconBgColor: AppColors.secondaryContainer,
+            title: strings('channels_and_automation'),
+            onTap: widget.onNavigateToChannels!,
+          ),
+          SizedBox(height: 10.h),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTabletDashboard(
+    Business? business,
+    DashboardOverview overview,
+    MerchantProvider provider,
+    String Function(String) strings,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildTopHeaderBar(business, strings),
+        SizedBox(height: 16.h),
+        if (provider.dashboardError != null) ...[
+          _buildErrorCard(
+            provider.dashboardError!,
+            provider.lastRequestId,
+            strings,
+          ),
+          SizedBox(height: 14.h),
+        ],
+        Padding(
+          padding: EdgeInsets.only(bottom: 10.h),
+          child: Text(
+            strings('stats_period_today'),
+            style: TextStyle(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.bold,
+              color: AppColors.onSurface,
+            ),
+          ),
+        ),
+        Row(
           children: [
-            // Business Welcome Banner
-            _buildWelcomeBanner(business, strings),
-            const SizedBox(height: 12),
-
-            // Error display if any
-            if (provider.dashboardError != null) ...[
-              _buildErrorCard(
-                provider.dashboardError!,
-                provider.lastRequestId,
-                strings,
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.openConversations.toString(),
+                label: strings('open_conversations'),
+                color: AppColors.primary,
+                onTap: widget.onNavigateToInbox,
               ),
-              const SizedBox(height: 12),
-            ],
-
-            // Subscription & Quotas Metering Card
-            if (widget.subscriptionProvider != null || overview.subscription != null) ...[
-              SubscriptionQuotaCard(
-                subscription: widget.subscriptionProvider?.subscription ??
-                    overview.subscription,
-                isLoading: widget.subscriptionProvider?.isLoading ?? false,
-                error: widget.subscriptionProvider?.error,
-                onRetry: _loadData,
-                onUpgradeOrRenew: widget.onNavigateToPlans ??
-                    widget.onNavigateToSubscription,
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // Channel Connectivity Banner
-            _buildConnectivityBanner(overview.connections, strings),
-            const SizedBox(height: 16),
-
-            // Section Title
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  strings('stats_period_today'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface,
-                  ),
-                ),
-                if (provider.isLoadingDashboard)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-              ],
             ),
-            const SizedBox(height: 12),
-
-            // 2x2 Metric Cards Grid
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    title: strings('open_conversations'),
-                    value: overview.openConversations.toString(),
-                    icon: Icons.forum_rounded,
-                    color: AppColors.primary,
-                    bgColor: AppColors.primaryFixed,
-                    onTap: widget.onNavigateToInbox,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildMetricCard(
-                    title: strings('waiting_human'),
-                    value: overview.waitingHuman.toString(),
-                    icon: Icons.support_agent_rounded,
-                    color: AppColors.statusWarning,
-                    bgColor: AppColors.statusWarningContainer,
-                    onTap: widget.onNavigateToInbox,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    title: strings('new_customers'),
-                    value: overview.newCustomers.toString(),
-                    icon: Icons.people_alt_rounded,
-                    color: AppColors.secondary,
-                    bgColor: AppColors.secondaryFixed,
-                    onTap: widget.onNavigateToCustomers,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildMetricCard(
-                    title: strings('new_leads'),
-                    value: overview.newLeads.toString(),
-                    icon: Icons.trending_up_rounded,
-                    color: AppColors.statusSuccess,
-                    bgColor: AppColors.statusSuccessContainer,
-                    onTap: widget.onNavigateToLeads,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Transactions Review Banner Card
-            _buildReviewCard(
-              title: strings('transactions_review'),
-              count: overview.transactionsNeedingReview,
-              onTap: widget.onNavigateToReviews ?? widget.onNavigateToTransactions,
-            ),
-            if (widget.onNavigateToCatalogs != null) ...[
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: widget.onNavigateToCatalogs,
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceCanvas,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.borderHairline),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.inventory_2_rounded,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          strings('catalogs_title'),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 14,
-                        color: AppColors.textMuted,
-                      ),
-                    ],
-                  ),
-                ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.waitingHuman.toString(),
+                label: strings('waiting_human'),
+                color: AppColors.errorRed,
+                onTap: widget.onNavigateToInbox,
               ),
-            ],
-            if (widget.onNavigateToTeam != null) ...[
-              const SizedBox(height: 12),
-              InkWell(
-                key: const Key('quick_link_team'),
-                onTap: widget.onNavigateToTeam,
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceCanvas,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.borderHairline),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6B21A8).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.groups_rounded,
-                          color: Color(0xFF6B21A8),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          strings('team_and_audit'),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 14,
-                        color: AppColors.textMuted,
-                      ),
-                    ],
-                  ),
-                ),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.transactionsNeedingReview.toString(),
+                label: strings('transactions_review'),
+                color: AppColors.successGreen,
+                onTap: widget.onNavigateToReviews ?? widget.onNavigateToTransactions,
               ),
-            ],
-            if (widget.onNavigateToChannels != null) ...[
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: widget.onNavigateToChannels,
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceCanvas,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.borderHairline),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: AppColors.secondaryContainer,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.cable_rounded,
-                          color: AppColors.secondary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          strings('channels_and_automation'),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 14,
-                        color: AppColors.textMuted,
-                      ),
-                    ],
-                  ),
-                ),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.newCustomers.toString(),
+                label: strings('new_customers'),
+                color: AppColors.primary,
+                onTap: widget.onNavigateToCustomers,
               ),
-            ],
-            const SizedBox(height: 16),
-
-            // Channel List Section
-            _buildChannelsSection(overview.connections, strings),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.newLeads.toString(),
+                label: strings('new_leads'),
+                color: AppColors.successGreen,
+                onTap: widget.onNavigateToLeads,
+              ),
+            ),
           ],
         ),
-      ),
+        SizedBox(height: 20.h),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildChannelsStatusCard(overview.connections, strings),
+                  SizedBox(height: 16.h),
+                  if (widget.onNavigateToCatalogs != null) ...[
+                    _buildQuickActionLink(
+                      icon: Icons.inventory_2_rounded,
+                      iconColor: AppColors.primary,
+                      iconBgColor: AppColors.primaryContainer,
+                      title: strings('catalogs_title'),
+                      onTap: widget.onNavigateToCatalogs!,
+                    ),
+                    SizedBox(height: 10.h),
+                  ],
+                  if (widget.onNavigateToTeam != null) ...[
+                    _buildQuickActionLink(
+                      key: const Key('quick_link_team'),
+                      icon: Icons.groups_rounded,
+                      iconColor: const Color(0xFF6B21A8),
+                      iconBgColor: const Color(0xFF6B21A8).withValues(alpha: 0.12),
+                      title: strings('team_and_audit'),
+                      onTap: widget.onNavigateToTeam!,
+                    ),
+                    SizedBox(height: 10.h),
+                  ],
+                  if (widget.onNavigateToChannels != null) ...[
+                    _buildQuickActionLink(
+                      icon: Icons.cable_rounded,
+                      iconColor: AppColors.secondary,
+                      iconBgColor: AppColors.secondaryContainer,
+                      title: strings('channels_and_automation'),
+                      onTap: widget.onNavigateToChannels!,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildSubscriptionPackageCard(overview, strings),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -436,228 +435,315 @@ class _DashboardTabState extends State<DashboardTab> {
     Business? business,
     String Function(String) strings,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCanvas,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderHairline),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(12),
+    return _buildTopHeaderBar(business, strings);
+  }
+
+  Widget _buildQuickActionLink({
+    Key? key,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      key: key,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCanvas,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderHairline),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
             ),
-            child: const Icon(
-              Icons.storefront_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  business?.name ?? strings('app_name'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface,
-                  ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${business?.slug ?? business?.id ?? ''} • ${business?.defaultCurrency ?? 'SAR'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.statusSuccessContainer,
-              borderRadius: BorderRadius.circular(20),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: AppColors.textMuted,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: AppColors.presenceOnline,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  strings('active_badge'),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.statusSuccess,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildConnectivityBanner(
-    Map<String, int> connections,
+  /// Top Header Bar: Store Switcher on right, Mujeeb24 Brand & Notifications on left
+  Widget _buildTopHeaderBar(
+    Business? business,
     String Function(String) strings,
   ) {
-    final activeCount = connections.values.fold<int>(
-      0,
-      (prev, curr) => prev + curr,
-    );
-    final channelCount = connections.keys.length;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderHairline),
-      ),
+    final businessName = business?.name ?? strings('app_name');
+    return MujeebCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      borderRadius: AppRadius.xl,
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceCanvas,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.hub_rounded,
-              size: 18,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
+          // Store Selector (Right in RTL)
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  channelCount > 0
-                      ? '$channelCount ${strings('connected_channels')}'
-                      : strings('no_connected_channels'),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
+                CircleAvatar(
+                  radius: 17,
+                  backgroundColor: AppColors.primaryFixed,
+                  child: const Icon(
+                    Icons.storefront_rounded,
+                    size: 19,
+                    color: AppColors.primary,
                   ),
                 ),
-                Text(
-                  activeCount > 0
-                      ? '$activeCount اتصال نشط'
-                      : 'بانتظار وصول محادثات جديدة',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textMuted,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              businessName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.onSurface,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 16,
+                            color: AppColors.textMuted,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        '${business?.slug ?? 'متجر نشط'} • ${business?.defaultCurrency ?? 'SAR'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          Icon(
-            channelCount > 0
-                ? Icons.check_circle_rounded
-                : Icons.info_outline_rounded,
-            size: 20,
-            color: channelCount > 0
-                ? AppColors.presenceOnline
-                : AppColors.textMuted,
+          const SizedBox(width: 8),
+
+          // Mujeeb24 Brand Logo & Notification Bell (Left in RTL)
+          Row(
+            children: [
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      size: 22,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                    onPressed: () {},
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(6),
+                  ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: AppColors.errorRed,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.smart_toy_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'مجيب 24',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMetricCard({
-    required String title,
+  /// 5 Key Performance Metrics Cards matching UI Board:
+  /// Row 1: 3 cards (Open Conversations: 12, Waiting Human: 3, Reviews: 8)
+  /// Row 2: 2 cards (New Customers: 25, New Leads: 42)
+  Widget _buildMetricsBoard(
+    DashboardOverview overview,
+    String Function(String) strings,
+  ) {
+    return Column(
+      children: [
+        // Row 1: 3 Cards
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.openConversations.toString(),
+                label: strings('open_conversations'),
+                color: AppColors.primary,
+                onTap: widget.onNavigateToInbox,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.waitingHuman.toString(),
+                label: strings('waiting_human'),
+                color: AppColors.errorRed,
+                onTap: widget.onNavigateToInbox,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.transactionsNeedingReview.toString(),
+                label: strings('transactions_review'),
+                color: AppColors.successGreen,
+                onTap: widget.onNavigateToReviews ??
+                    widget.onNavigateToTransactions,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Row 2: 2 Cards
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.newCustomers.toString(),
+                label: strings('new_customers'),
+                color: AppColors.primary,
+                onTap: widget.onNavigateToCustomers,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildMetricPillCard(
+                value: overview.newLeads.toString(),
+                label: strings('new_leads'),
+                color: AppColors.successGreen,
+                onTap: widget.onNavigateToLeads,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Single Metric Card with prominent large number and clean label
+  Widget _buildMetricPillCard({
     required String value,
-    required IconData icon,
+    required String label,
     required Color color,
-    required Color bgColor,
     VoidCallback? onTap,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        height: 130,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
         decoration: BoxDecoration(
           color: AppColors.surfaceCanvas,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.borderHairline),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x06000000),
-              blurRadius: 6,
+              color: Color(0x04000000),
+              blurRadius: 8,
               offset: Offset(0, 2),
             ),
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 18, color: color),
-                ),
-              ],
-            ),
             Text(
               value,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
                 color: color,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.secondaryText,
               ),
             ),
           ],
@@ -666,145 +752,242 @@ class _DashboardTabState extends State<DashboardTab> {
     );
   }
 
-  Widget _buildReviewCard({
-    required String title,
-    required int count,
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: count > 0
-              ? AppColors.statusWarningContainer
-              : AppColors.surfaceCanvas,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color:
-                count > 0 ? AppColors.statusWarning : AppColors.borderHairline,
-          ),
-        ),
-        child: Row(
-          children: [
-          Icon(
-            count > 0
-                ? Icons.warning_amber_rounded
-                : Icons.check_circle_outline_rounded,
-            color: count > 0
-                ? AppColors.statusWarning
-                : AppColors.statusSuccess,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: count > 0
-                    ? AppColors.statusWarning
-                    : AppColors.onSurface,
+  /// Channels Status Card ("حالة قنوات التواصل") matching UI Board
+  Widget _buildChannelsStatusCard(
+    Map<String, int> connections,
+    String Function(String) strings,
+  ) {
+    return MujeebCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      borderRadius: AppRadius.xl,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'حالة قنوات التواصل',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.onSurface,
+                ),
               ),
+              if (widget.onNavigateToChannels != null)
+                InkWell(
+                  onTap: widget.onNavigateToChannels,
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    child: Icon(
+                      Icons.settings_outlined,
+                      size: 16,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Horizontal 4-channel row matching UI board
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildChannelStatusItem(
+                name: 'واتساب',
+                icon: Icons.chat_rounded,
+                iconColor: const Color(0xFF25D366),
+                bgColor: const Color(0xFFE8F8F0),
+                isConnected: true,
+                count: connections['واتساب'] ?? connections['WhatsApp'],
+              ),
+              _buildChannelStatusItem(
+                name: 'تيليجرام',
+                icon: Icons.send_rounded,
+                iconColor: const Color(0xFF0088CC),
+                bgColor: const Color(0xFFE5F4FC),
+                isConnected: true,
+                count: connections['تيليجرام'] ?? connections['Telegram'],
+              ),
+              _buildChannelStatusItem(
+                name: 'فيسبوك',
+                icon: Icons.facebook_rounded,
+                iconColor: const Color(0xFF1877F2),
+                bgColor: const Color(0xFFE7F0FD),
+                isConnected: true,
+                count: connections['فيسبوك'] ?? connections['Facebook'],
+              ),
+              _buildChannelStatusItem(
+                name: 'إنستغرام',
+                icon: Icons.camera_alt_rounded,
+                iconColor: const Color(0xFFE1306C),
+                bgColor: const Color(0xFFFDF0F5),
+                isConnected: (connections['إنستغرام'] ?? connections['Instagram'] ?? 0) > 0,
+                count: connections['إنستغرام'] ?? connections['Instagram'],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Single channel status column in Channels card
+  Widget _buildChannelStatusItem({
+    required String name,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required bool isConnected,
+    int? count,
+  }) {
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: bgColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: AppColors.onSurface,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: count > 0
-                  ? AppColors.statusWarning
-                  : AppColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 2),
+          if (count != null && count > 0)
+            Text(
+              '$count محادثة',
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppColors.textMuted,
+              ),
+            )
+          else
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: isConnected
+                        ? AppColors.successGreen
+                        : AppColors.errorRed,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  isConnected ? 'متصل' : 'معطل',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: isConnected
+                        ? AppColors.successGreen
+                        : AppColors.errorRed,
+                  ),
+                ),
+              ],
             ),
-            child: Text(
-              count.toString(),
+        ],
+      ),
+    );
+  }
+
+  /// Subscription Package Card ("باقة الاشتراك") matching UI Board
+  Widget _buildSubscriptionPackageCard(
+    DashboardOverview overview,
+    String Function(String) strings,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBlueSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Text info on right
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text(
+                  'باقة الاشتراك',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'الباقة الاحترافية',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'تنتهي في 2025-12-31',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Outlined white Action button on left
+          OutlinedButton(
+            onPressed: widget.onNavigateToPlans ??
+                widget.onNavigateToSubscription ??
+                () {},
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: Color(0xFFD8E8FE)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              minimumSize: const Size(0, 34),
+            ),
+            child: const Text(
+              'إدارة الباقة',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: count > 0 ? Colors.white : AppColors.onSurface,
               ),
             ),
           ),
         ],
       ),
-    ),
-  );
-}
-
-  Widget _buildChannelsSection(
-    Map<String, int> connections,
-    String Function(String) strings,
-  ) {
-    if (connections.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          strings('connected_channels'),
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: AppColors.onSurface,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceCanvas,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.borderHairline),
-          ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: connections.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final key = connections.keys.elementAt(index);
-              final count = connections[key] ?? 0;
-              final meta = ChannelPresentation.getMeta(key);
-
-              return ListTile(
-                leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: meta.backgroundColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    meta.icon,
-                    color: meta.brandColor,
-                    size: 20,
-                  ),
-                ),
-                title: Text(
-                  meta.key == 'other' ? key : meta.localizedName(context),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                trailing: Text(
-                  '$count محادثة',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
     );
   }
+
+
 
   Widget _buildErrorCard(
     String error,
@@ -812,11 +995,11 @@ class _DashboardTabState extends State<DashboardTab> {
     String Function(String) strings,
   ) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.statusErrorContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.statusError.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.statusError.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -828,28 +1011,44 @@ class _DashboardTabState extends State<DashboardTab> {
                 color: AppColors.statusError,
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   error,
                   style: const TextStyle(
                     color: AppColors.statusError,
                     fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              TextButton(onPressed: _loadData, child: Text(strings('retry'))),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.statusError,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: _loadData,
+                child: Text(
+                  strings('retry'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
           if (requestId != null && requestId.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                '${strings('request_id')}: $requestId',
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontFamily: 'monospace',
-                  color: AppColors.textMuted,
+              padding: const EdgeInsets.only(top: 6, right: 30),
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: Text(
+                  '${strings('request_id')}: $requestId',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ),
             ),

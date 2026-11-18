@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mujeeb24_app/core/widgets/common_ui_widgets.dart';
 import 'package:mujeeb24_app/app/theme/app_theme.dart';
 import 'package:mujeeb24_app/core/models/subscription_models.dart';
 import 'package:mujeeb24_app/features/subscription/providers/subscription_provider.dart';
@@ -97,13 +98,9 @@ class _ManualPaymentDialogState extends State<ManualPaymentDialog> {
       if (success) {
         Navigator.of(context).pop();
         widget.onSuccess?.call();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.provider.submissionSuccessMessage ?? 'تم إرسال إثبات الدفع بنجاح. سيتم تفعيل الباقة بعد مراجعة الإدارة.',
-            ),
-            backgroundColor: AppColors.statusSuccess,
-          ),
+        showAppAlertDialog(
+          context,
+          message: widget.provider.submissionSuccessMessage ?? 'تم إرسال إثبات الدفع بنجاح. سيتم تفعيل الباقة بعد مراجعة الإدارة.',
         );
       } else {
         setState(() {

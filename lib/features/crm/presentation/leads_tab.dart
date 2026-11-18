@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mujeeb24_app/app/localization/app_localizations.dart';
 import 'package:mujeeb24_app/app/theme/app_theme.dart';
 import 'package:mujeeb24_app/core/models/crm_models.dart';
@@ -83,28 +84,167 @@ class _LeadsTabState extends State<LeadsTab> {
 
   @override
   Widget build(BuildContext context) {
+    ensureScreenUtilInitialized();
     String strings(String key) => AppStrings.get(key, context);
     final provider = widget.crmProvider;
     final leads = provider.filteredLeads;
 
     return Scaffold(
-      backgroundColor: AppColors.surfaceCanvas,
+      backgroundColor: AppColors.lightBlueBackground,
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_chart_rounded),
-        label: Text(strings('create_lead')),
+        elevation: 2,
+        highlightElevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        icon: const Icon(Icons.add_chart_rounded, size: 20),
+        label: Text(
+          strings('create_lead'),
+          style: AppTypography.buttonLabel.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
         onPressed: _openCreateLead,
       ),
-      body: Column(
-        children: [
-          // Filter Chips Container
+      body: SafeArea(
+        child: Column(
+          children: [
+          // Filter Chips & Search Header
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            color: AppColors.surfaceCanvas,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceCanvas,
+              border: Border(
+                bottom: BorderSide(
+                  color: AppColors.borderLightBlue,
+                  width: 1.0,
+                ),
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Top Title Row ("العملاء المحتملين") with Count Badge & Refresh
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'العملاء المحتملين',
+                              style: AppTypography.pageTitle.copyWith(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryContainer,
+                              borderRadius: BorderRadius.circular(AppRadius.full),
+                              border: Border.all(
+                                color: AppColors.primaryBlue.withValues(alpha: 0.15),
+                              ),
+                            ),
+                            child: Text(
+                              '${leads.length} فرصة',
+                              style: AppTypography.caption.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryBlue,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(color: AppColors.borderLightBlue),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.refresh_rounded,
+                          size: 19,
+                          color: AppColors.headingNavy,
+                        ),
+                        onPressed: _loadData,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        padding: const EdgeInsets.all(8),
+                        tooltip: strings('refresh'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Modern Search Field
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.borderLightBlue),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: AppTypography.body.copyWith(
+                      color: AppColors.headingNavy,
+                      fontSize: 13.5,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: strings('search_customers'),
+                      hintStyle: AppTypography.caption.copyWith(
+                        color: AppColors.secondaryText,
+                        fontSize: 13,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: AppColors.secondaryText,
+                        size: 20,
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              color: AppColors.secondaryText,
+                              onPressed: () {
+                                _searchController.clear();
+                                provider.setLeadSearchQuery('');
+                              },
+                            )
+                          : null,
+                      filled: false,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                    onChanged: (value) {
+                      provider.setLeadSearchQuery(value);
+                    },
+                    onSubmitted: (value) {
+                      provider.setLeadSearchQuery(value);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+
                 // 1. Social Channels Filter Bar
                 ChannelFilterBar(
                   selectedChannel: provider.leadChannelFilter,
@@ -112,9 +252,9 @@ class _LeadsTabState extends State<LeadsTab> {
                     provider.setLeadChannelFilter(val);
                   },
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
 
-                // 2. Status Filter Row
+                // 2. Status Filter Row (All, New, Contacted, Qualified, Lost)
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -171,9 +311,9 @@ class _LeadsTabState extends State<LeadsTab> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
 
-                // 3. Score Band Filter Row
+                // 3. Score Band Filter Row (All, HIGH, MEDIUM, LOW)
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -214,7 +354,7 @@ class _LeadsTabState extends State<LeadsTab> {
                         label: 'LOW',
                         value: 'low',
                         current: provider.leadFilterScoreBand,
-                        color: AppColors.textMuted,
+                        color: AppColors.secondaryText,
                         onSelected: (val) {
                           provider.setLeadFilterScoreBand(val);
                           provider.loadLeads(widget.businessId, scoreBand: val);
@@ -226,7 +366,7 @@ class _LeadsTabState extends State<LeadsTab> {
 
                 // 4. Active Filters Header & Clear action
                 if (provider.activeLeadFiltersCount > 0) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   ActiveFiltersHeader(
                     activeCount: provider.activeLeadFiltersCount,
                     onClear: () {
@@ -244,33 +384,44 @@ class _LeadsTabState extends State<LeadsTab> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: AppColors.statusErrorContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.errorRed.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
-                    color: AppColors.statusError.withValues(alpha: 0.3),
+                    color: AppColors.errorRed.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.error_outline_rounded,
-                      color: AppColors.statusError,
+                      color: AppColors.errorRed,
+                      size: 20,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         provider.leadsError!,
-                        style: const TextStyle(
-                          color: AppColors.statusError,
-                          fontSize: 13,
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.errorRed,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                     TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.errorRed,
+                        visualDensity: VisualDensity.compact,
+                      ),
                       onPressed: _loadData,
-                      child: Text(strings('retry')),
+                      child: Text(
+                        strings('retry'),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
@@ -280,39 +431,73 @@ class _LeadsTabState extends State<LeadsTab> {
           // Leads List
           Expanded(
             child: RefreshIndicator(
+              color: AppColors.primaryBlue,
               onRefresh: () async => _loadData(),
               child: provider.isLoadingLeads && leads.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryBlue,
+                        strokeWidth: 2.5,
+                      ),
+                    )
                   : leads.isEmpty
-                  ? (provider.activeLeadFiltersCount > 0
-                        ? FilterEmptyState(
-                            title: strings('no_filtered_results'),
-                            subtitle: strings('no_filtered_results_hint'),
-                            onClearFilters: () {
-                              _searchController.clear();
-                              provider.clearLeadFilters(widget.businessId);
-                            },
-                            clearButtonText: strings('reset_all_filters'),
-                          )
-                        : _buildEmptyState(strings))
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                      itemCount: leads.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final lead = leads[index];
-                        return _buildLeadCard(
-                          lead: lead,
-                          strings: strings,
-                          onTap: () => _openLeadDetail(lead),
-                        );
-                      },
-                    ),
+                      ? (provider.activeLeadFiltersCount > 0
+                          ? FilterEmptyState(
+                              title: strings('no_filtered_results'),
+                              subtitle: strings('no_filtered_results_hint'),
+                              onClearFilters: () {
+                                _searchController.clear();
+                                provider.clearLeadFilters(
+                                  widget.businessId,
+                                );
+                              },
+                              clearButtonText: strings('reset_all_filters'),
+                            )
+                          : _buildEmptyState(strings))
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isTablet = constraints.maxWidth >= 600;
+                            if (isTablet) {
+                              return GridView.builder(
+                                padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 84.h),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 2.3,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 10,
+                                ),
+                                itemCount: leads.length,
+                                itemBuilder: (context, index) {
+                                  final lead = leads[index];
+                                  return _buildLeadCard(
+                                    lead: lead,
+                                    strings: strings,
+                                    onTap: () => _openLeadDetail(lead),
+                                  );
+                                },
+                              );
+                            }
+                            return ListView.separated(
+                              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 84.h),
+                              itemCount: leads.length,
+                              separatorBuilder: (context, index) =>
+                                  SizedBox(height: 10.h),
+                              itemBuilder: (context, index) {
+                                final lead = leads[index];
+                                return _buildLeadCard(
+                                  lead: lead,
+                                  strings: strings,
+                                  onTap: () => _openLeadDetail(lead),
+                                );
+                              },
+                            );
+                          },
+                        ),
             ),
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -324,24 +509,38 @@ class _LeadsTabState extends State<LeadsTab> {
     Color? color,
   }) {
     final isSelected = current == value;
-    final primaryColor = color ?? AppColors.primary;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        if (selected) {
-          onSelected(value);
-        }
-      },
-      selectedColor: primaryColor,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : AppColors.onSurface,
-        fontSize: 12,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-      backgroundColor: AppColors.surfaceCanvas,
-      side: BorderSide(
-        color: isSelected ? primaryColor : AppColors.borderHairline,
+    final primaryColor = color ?? AppColors.primaryBlue;
+    return InkWell(
+      onTap: () => onSelected(value),
+      borderRadius: BorderRadius.circular(AppRadius.full),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor : AppColors.surfaceCanvas,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: Border.all(
+            color: isSelected ? primaryColor : AppColors.borderLightBlue,
+            width: isSelected ? 1 : 0.8,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: primaryColor.withValues(alpha: 0.2),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppColors.headingNavy,
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }
@@ -358,124 +557,179 @@ class _LeadsTabState extends State<LeadsTab> {
         : '-';
     final band = lead.scoreBand?.toUpperCase() ?? 'NONE';
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceCanvas,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.borderHairline),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x05000000),
-              blurRadius: 4,
-              offset: Offset(0, 1),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCanvas,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: AppColors.borderLightBlue,
+          width: 1,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: statusColor.withValues(alpha: 0.15),
-                  child: Icon(statusIcon, color: statusColor, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Lead: ${lead.id}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.onSurface,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Cust: ${lead.customerId}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textMuted,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    lead.status.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: statusColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 20, color: AppColors.borderHairline),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        boxShadow: AppShadows.subtle,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.speed_rounded,
-                      size: 16,
-                      color: AppColors.textMuted,
+                    // Status Squircle
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.25),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Icon(statusIcon, color: statusColor, size: 22),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Score: $score',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
+                    const SizedBox(width: 12),
+
+                    // Lead and Customer identifiers
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Lead: ${lead.id}',
+                            style: AppTypography.cardTitle.copyWith(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.headingNavy,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Cust: ${lead.customerId}',
+                            style: AppTypography.caption.copyWith(
+                              fontSize: 12,
+                              color: AppColors.secondaryText,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Status Capsule Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 3.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.25),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        lead.status.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'BAND: $band',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: AppColors.borderLightBlue),
+                const SizedBox(height: 10),
+
+                // Score and Score Band Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: const Icon(
+                              Icons.speed_rounded,
+                              size: 15,
+                              color: AppColors.secondaryText,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Score: $score',
+                              style: AppTypography.caption.copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.headingNavy,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                            border: Border.all(
+                              color: AppColors.primaryBlue.withValues(alpha: 0.15),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            'BAND: $band',
+                            style: AppTypography.caption.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryBlue,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 13,
+                          color: AppColors.secondaryText,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -491,7 +745,7 @@ class _LeadsTabState extends State<LeadsTab> {
         return AppColors.statusWarning;
       case 'new':
       default:
-        return AppColors.primary;
+        return AppColors.primaryBlue;
     }
   }
 
@@ -512,27 +766,35 @@ class _LeadsTabState extends State<LeadsTab> {
   Widget _buildEmptyState(String Function(String) strings) {
     return Center(
       child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
                 Icons.trending_up_rounded,
-                size: 64,
-                color: AppColors.textMuted.withValues(alpha: 0.5),
+                size: 38,
+                color: AppColors.primaryBlue,
               ),
-              const SizedBox(height: 16),
-              Text(
-                strings('no_leads_found'),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.onSurface,
-                ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              strings('no_leads_found'),
+              style: AppTypography.cardTitle.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.headingNavy,
               ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

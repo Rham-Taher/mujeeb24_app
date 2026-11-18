@@ -454,14 +454,39 @@ class _MerchantHomeScreenState extends State<MerchantHomeScreen> {
         index: _currentIndex.clamp(0, tabs.length - 1),
         children: tabs,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex.clamp(0, navItems.length - 1),
-        onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textMuted,
-        backgroundColor: AppColors.surfaceCanvas,
-        type: BottomNavigationBarType.fixed,
-        items: navItems,
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceCanvas,
+          border: Border(
+            top: BorderSide(color: AppColors.borderHairline, width: 1),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0F0F172A),
+              blurRadius: 12,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 64,
+            child: BottomNavigationBar(
+              elevation: 0,
+              currentIndex: _currentIndex.clamp(0, navItems.length - 1),
+              onTap: (index) => setState(() => _currentIndex = index),
+              selectedItemColor: AppColors.primary,
+              unselectedItemColor: AppColors.textMuted,
+              backgroundColor: Colors.transparent,
+              type: BottomNavigationBarType.fixed,
+              iconSize: 24,
+              selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+              unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+              items: navItems,
+            ),
+          ),
+        ),
       ),
     );
   }

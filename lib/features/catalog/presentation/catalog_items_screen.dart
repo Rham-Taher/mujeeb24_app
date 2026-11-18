@@ -113,27 +113,74 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
         final items = provider.catalogItems;
         final currentFilter = provider.itemStatusFilter;
 
-        return Scaffold(
+        ensureScreenUtilInitialized();
+    return Scaffold(
+          backgroundColor: AppColors.background,
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            backgroundColor: AppColors.surfaceCanvas,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            titleSpacing: 16,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Container(
+                color: AppColors.borderHairline,
+                height: 1,
+              ),
+            ),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  widget.catalog.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.catalog.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColors.onSurface,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        strings('catalog_items_title'),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                Text(
-                  strings('catalog_items_title'),
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    border: Border.all(color: AppColors.borderHairline),
+                  ),
+                  child: Text(
+                    '${items.length}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ),
               ],
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.refresh_rounded),
+                icon: const Icon(Icons.refresh_rounded, color: AppColors.onSurfaceVariant),
                 tooltip: strings('refresh'),
                 onPressed: provider.isLoadingItems ? null : _loadItems,
               ),
+              const SizedBox(width: 8),
             ],
           ),
           floatingActionButton: FloatingActionButton.extended(
@@ -154,71 +201,108 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
             },
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            icon: const Icon(Icons.add_rounded),
-            label: Text(strings('create_item')),
+            elevation: 3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 22),
+            label: Text(
+              strings('create_item'),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
           ),
-          body: Column(
-            children: [
+          body: SafeArea(
+            child: Column(
+              children: [
               // Search Input
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: strings('search_items'),
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded),
-                            onPressed: () {
-                              _searchController.clear();
-                              provider.setItemSearchQuery('');
-                              _loadItems();
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xs),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCanvas,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.borderHairline),
+                    boxShadow: AppShadows.card,
                   ),
-                  onSubmitted: (query) {
-                    provider.setItemSearchQuery(query.trim());
-                    _loadItems();
-                  },
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.onSurface,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: strings('search_items'),
+                      hintStyle: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.clear_rounded,
+                                size: 18,
+                                color: AppColors.textMuted,
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                                provider.setItemSearchQuery('');
+                                _loadItems();
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: AppColors.surfaceCanvas,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                    onSubmitted: (query) {
+                      provider.setItemSearchQuery(query.trim());
+                      _loadItems();
+                    },
+                  ),
                 ),
               ),
 
               // Status Filter Chips
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
                 child: Row(
                   children: [
                     _buildFilterChip('all', strings('all_transactions'), currentFilter),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     _buildFilterChip('active', strings('status_active'), currentFilter),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     _buildFilterChip('draft', strings('status_draft'), currentFilter),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     _buildFilterChip('inactive', strings('status_inactive'), currentFilter),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     _buildFilterChip('archived', strings('status_archived'), currentFilter),
                   ],
                 ),
               ),
 
               if (provider.isPerformingAction)
-                const LinearProgressIndicator(color: AppColors.primary),
+                const LinearProgressIndicator(color: AppColors.primary, minHeight: 3),
 
               // Items List
               Expanded(
                 child: provider.isLoadingItems && items.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(child: CircularProgressIndicator(strokeWidth: 2.5))
                     : provider.itemsError != null && items.isEmpty
                         ? Center(
                             child: Padding(
-                              padding: const EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(AppSpacing.xl),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -227,15 +311,22 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
                                     size: 48,
                                     color: AppColors.statusError,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: AppSpacing.md),
                                   Text(
                                     provider.itemsError!,
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(color: AppColors.textMuted),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: AppSpacing.md),
                                   ElevatedButton(
                                     onPressed: _loadItems,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(AppRadius.md),
+                                      ),
+                                    ),
                                     child: Text(strings('retry')),
                                   ),
                                 ],
@@ -247,12 +338,19 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(
-                                      Icons.category_outlined,
-                                      size: 56,
-                                      color: AppColors.textMuted,
+                                    Container(
+                                      padding: const EdgeInsets.all(AppSpacing.lg),
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.surfaceContainerLow,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.category_outlined,
+                                        size: 48,
+                                        color: AppColors.textMuted,
+                                      ),
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: AppSpacing.md),
                                     Text(
                                       strings('no_items'),
                                       style: const TextStyle(
@@ -261,7 +359,7 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
                                         color: AppColors.textMuted,
                                       ),
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: AppSpacing.md),
                                     ElevatedButton.icon(
                                       onPressed: () async {
                                         final created =
@@ -281,16 +379,24 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
                                       },
                                       icon: const Icon(Icons.add_rounded),
                                       label: Text(strings('create_item')),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(AppRadius.md),
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
                               )
                             : RefreshIndicator(
                                 onRefresh: _loadItems,
+                                color: AppColors.primary,
                                 child: ListView.separated(
-                                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
+                                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, 88),
                                   itemCount: items.length + (provider.itemsHasMore ? 1 : 0),
-                                  separatorBuilder: (_, index) => const SizedBox(height: 12),
+                                  separatorBuilder: (_, index) => const SizedBox(height: AppSpacing.sm),
                                   itemBuilder: (context, index) {
                                     if (index == items.length) {
                                       return OutlinedButton(
@@ -306,6 +412,7 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
               ),
             ],
           ),
+        ),
         );
       },
     );
@@ -320,13 +427,21 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
         widget.catalogProvider.setItemStatusFilter(key);
         _loadItems();
       },
-      selectedColor: AppColors.primary,
+      selectedColor: AppColors.primaryContainer.withValues(alpha: 0.12),
+      checkmarkColor: AppColors.primary,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : AppColors.onSurface,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
         fontSize: 12,
       ),
-      backgroundColor: AppColors.surfaceSubtle,
+      backgroundColor: AppColors.surfaceCanvas,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        side: BorderSide(
+          color: isSelected ? AppColors.primary : AppColors.borderHairline,
+          width: isSelected ? 1.2 : 0.8,
+        ),
+      ),
     );
   }
 
@@ -343,15 +458,15 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
     final fulfillmentLabel = widget.catalogProvider.entityContract
         .labelFulfillmentMode(item.fulfillmentMode);
 
-    return Card(
-      elevation: 0,
-      color: AppColors.surfaceCanvas,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.borderHairline),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCanvas,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.borderHairline),
+        boxShadow: AppShadows.card,
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         onTap: () {
           widget.catalogProvider.selectItem(item);
           Navigator.of(context).push(
@@ -367,38 +482,65 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Product Thumbnail Container
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.secondaryFixed,
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(color: AppColors.borderHairline),
                     ),
                     child: const Icon(
-                      Icons.shopping_bag_outlined,
-                      color: AppColors.secondary,
+                      Icons.inventory_2_outlined,
+                      color: AppColors.primary,
                       size: 24,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.name,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.onSurface,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.name,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: statusBg,
+                                borderRadius: BorderRadius.circular(AppRadius.full),
+                              ),
+                              child: Text(
+                                statusLabel,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Wrap(
@@ -409,8 +551,8 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceSubtle,
-                                borderRadius: BorderRadius.circular(6),
+                                color: AppColors.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(AppRadius.sm),
                                 border:
                                     Border.all(color: AppColors.borderHairline),
                               ),
@@ -419,7 +561,7 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
                                 style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textMuted,
+                                  color: AppColors.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -429,7 +571,7 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: AppColors.statusWarningContainer,
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(AppRadius.sm),
                                 ),
                                 child: Text(
                                   strings('requires_confirmation'),
@@ -459,26 +601,13 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: statusBg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor,
-                      ),
-                    ),
-                  ),
                 ],
               ),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
+              const SizedBox(height: 10),
+              Container(
+                height: 1,
+                color: AppColors.borderHairline,
+              ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -494,10 +623,11 @@ class _CatalogItemsScreenState extends State<CatalogItemsScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   const Icon(
                     Icons.arrow_forward_ios_rounded,
-                    size: 12,
-                    color: AppColors.textMuted,
+                    size: 11,
+                    color: AppColors.primary,
                   ),
                 ],
               ),

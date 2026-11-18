@@ -22,6 +22,7 @@ class BusinessSelectionScreen extends StatelessWidget {
     final user = authProvider.currentPrincipal;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(strings('select_business')),
         actions: [
@@ -37,62 +38,82 @@ class BusinessSelectionScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // User Greeting Card
-              Card(
-                color: AppColors.surfaceContainerLow,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        radius: 22,
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: AppColors.borderHairline),
+                  boxShadow: AppShadows.subtle,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primary, Color(0xFF2563EB)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Center(
                         child: Text(
                           user?.displayName.isNotEmpty == true
                               ? user!.displayName[0].toUpperCase()
                               : 'U',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 18,
+                            fontSize: 20,
+                            color: Colors.white,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user?.displayName ?? '',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                          if (user?.email != null) ...[
+                            const SizedBox(height: 2),
                             Text(
-                              user?.displayName ?? '',
+                              user!.email!,
                               style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: AppColors.onSurface,
+                                fontSize: 12,
+                                color: AppColors.textMuted,
                               ),
                             ),
-                            if (user?.email != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                user!.email!,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            ],
                           ],
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.lg),
 
               Text(
                 strings('select_business_subtitle'),
@@ -101,7 +122,7 @@ class BusinessSelectionScreen extends StatelessWidget {
                   color: AppColors.textMuted,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
 
               // Empty or List
               if (businesses.isEmpty) ...[
@@ -110,12 +131,19 @@ class BusinessSelectionScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.business_outlined,
-                          size: 64,
-                          color: AppColors.textMuted.withValues(alpha: 0.5),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainerLow,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.business_outlined,
+                            size: 48,
+                            color: AppColors.textMuted.withValues(alpha: 0.6),
+                          ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
                         Text(
                           strings('no_businesses'),
                           style: const TextStyle(
@@ -124,7 +152,7 @@ class BusinessSelectionScreen extends StatelessWidget {
                             color: AppColors.onSurface,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           strings('no_businesses_desc'),
                           textAlign: TextAlign.center,
@@ -133,11 +161,17 @@ class BusinessSelectionScreen extends StatelessWidget {
                             color: AppColors.textMuted,
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppSpacing.lg),
                         OutlinedButton.icon(
                           onPressed: () => authProvider.reloadBusinesses(),
                           icon: const Icon(Icons.refresh_rounded, size: 18),
                           label: Text(strings('retry')),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.borderHairline),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -147,47 +181,56 @@ class BusinessSelectionScreen extends StatelessWidget {
                 Expanded(
                   child: ListView.separated(
                     itemCount: businesses.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
                     itemBuilder: (context, index) {
                       final item = businesses[index];
                       final isSelected =
                           authProvider.selectedBusiness?.business.id ==
                           item.business.id;
 
-                      return Card(
-                        elevation: isSelected ? 2 : 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(
                             color: isSelected
                                 ? AppColors.primary
                                 : AppColors.borderHairline,
-                            width: isSelected ? 2 : 1,
+                            width: isSelected ? 1.5 : 1,
                           ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : AppShadows.subtle,
                         ),
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
                           onTap: () {
                             authProvider.selectBusiness(item);
                             onBusinessSelected();
                           },
                           child: Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(AppSpacing.md),
                             child: Row(
                               children: [
                                 Container(
                                   width: 44,
                                   height: 44,
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryFixed,
-                                    borderRadius: BorderRadius.circular(10),
+                                    color: isSelected ? AppColors.primaryFixed : AppColors.surfaceContainerLow,
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.store_mall_directory_rounded,
-                                    color: AppColors.primary,
+                                    color: isSelected ? AppColors.primary : AppColors.outline,
                                   ),
                                 ),
-                                const SizedBox(width: 14),
+                                const SizedBox(width: AppSpacing.md),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -206,13 +249,16 @@ class BusinessSelectionScreen extends StatelessWidget {
                                         children: [
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
+                                              horizontal: 8,
                                               vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: AppColors.surfaceContainer,
+                                              color: AppColors.surfaceContainerLow,
                                               borderRadius:
-                                                  BorderRadius.circular(4),
+                                                  BorderRadius.circular(AppRadius.full),
+                                              border: Border.all(
+                                                color: AppColors.borderHairline,
+                                              ),
                                             ),
                                             child: Text(
                                               item.role ?? 'عضو',
@@ -226,7 +272,7 @@ class BusinessSelectionScreen extends StatelessWidget {
                                           ),
                                           if (item.business.defaultCurrency !=
                                               null) ...[
-                                            const SizedBox(width: 6),
+                                            const SizedBox(width: AppSpacing.xs),
                                             Text(
                                               item.business.defaultCurrency!,
                                               style: const TextStyle(
@@ -240,10 +286,10 @@ class BusinessSelectionScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                const Icon(
+                                Icon(
                                   Icons.arrow_forward_ios_rounded,
-                                  size: 16,
-                                  color: AppColors.outline,
+                                  size: 14,
+                                  color: isSelected ? AppColors.primary : AppColors.outline,
                                 ),
                               ],
                             ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mujeeb24_app/app/localization/app_localizations.dart';
 import 'package:mujeeb24_app/app/theme/app_theme.dart';
 import 'package:mujeeb24_app/core/models/auth_models.dart';
 import 'package:mujeeb24_app/core/models/merchant_models.dart';
+import 'package:mujeeb24_app/core/widgets/common_ui_widgets.dart';
 import 'package:mujeeb24_app/core/widgets/filter_widgets.dart';
 import 'package:mujeeb24_app/features/merchant/providers/merchant_provider.dart';
 
@@ -134,6 +136,19 @@ class _InboxTabState extends State<InboxTab> {
     return 'whatsapp';
   }
 
+  String? _formatLastActivity(String raw) {
+    if (raw.isEmpty) return null;
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final period = dt.hour >= 12 ? 'م' : 'ص';
+      return '$hour:$minute $period';
+    } catch (_) {
+      return raw.length >= 10 ? raw.substring(0, 10) : raw;
+    }
+  }
+
   List<Conversation> _getFilteredConversations() {
     final list = widget.merchantProvider.conversations;
     return list.where((c) {
@@ -194,208 +209,333 @@ class _InboxTabState extends State<InboxTab> {
 
   @override
   Widget build(BuildContext context) {
+    ensureScreenUtilInitialized();
     String strings(String key) => AppStrings.get(key, context);
     final provider = widget.merchantProvider;
     final filtered = _getFilteredConversations();
 
-    return RefreshIndicator(
-      onRefresh: () async => _loadConversations(),
-      child: Column(
+    return SafeArea(
+      child: Container(
+        color: AppColors.surface,
+        child: Stack(
         children: [
-          // Header / Search Bar & Filter Controls
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            color: AppColors.surfaceCanvas,
+          RefreshIndicator(
+            onRefresh: () async => _loadConversations(),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Live Indicator Strip
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.presenceOnline,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${provider.conversations.length} ${strings('nav_inbox')}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (provider.isLoadingConversations)
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    else
-                      IconButton(
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
-                        onPressed: _loadConversations,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        tooltip: strings('refresh'),
+                // Header / Search Bar & Filter Controls
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Color(0xFFF1F5F9),
+                        width: 1,
                       ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // Search TextField
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: strings('search_conversations'),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                            onPressed: () => _searchController.clear(),
-                          )
-                        : null,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-
-                // 1. Social Channels Filter Bar (WhatsApp, Facebook, Telegram, Instagram, etc.)
-                ChannelFilterBar(
-                  selectedChannel: _selectedChannel,
-                  onChannelSelected: _onChannelSelected,
-                ),
-                const SizedBox(height: 8),
-
-                // 2. Status & Ownership Filters Row
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // State Filter Chips
-                      _buildFilterChip(
-                        'all',
-                        strings('all_conversations'),
-                        _selectedFilter,
-                        _onStateSelected,
+                      // Top Title Row matching UI Board ("المحادثات")
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Text(
+                                'المحادثات',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.headingNavy,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceContainerLow,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${provider.conversations.length}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (provider.isLoadingConversations)
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          else
+                            IconButton(
+                              icon: const Icon(Icons.refresh_rounded, size: 20),
+                              onPressed: _loadConversations,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: strings('refresh'),
+                              color: const Color(0xFF64748B),
+                            ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
-                      _buildFilterChip(
-                        'waiting_human',
-                        strings('waiting_filter'),
-                        _selectedFilter,
-                        _onStateSelected,
+                      const SizedBox(height: 10),
+
+                      // 1. Channel Filter Bar (WhatsApp, Facebook, Telegram, Instagram)
+                      ChannelFilterBar(
+                        selectedChannel: _selectedChannel,
+                        onChannelSelected: _onChannelSelected,
                       ),
-                      const SizedBox(width: 6),
-                      _buildFilterChip(
-                        'open',
-                        strings('open_filter'),
-                        _selectedFilter,
-                        _onStateSelected,
-                      ),
-                      const SizedBox(width: 6),
-                      _buildFilterChip(
-                        'closed',
-                        strings('closed_filter'),
-                        _selectedFilter,
-                        _onStateSelected,
+                      const SizedBox(height: 8),
+
+                      // 2. Status & Ownership Filters Row
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            // State Filter Chips
+                            _buildFilterChip(
+                              'all',
+                              strings('all_conversations'),
+                              _selectedFilter,
+                              _onStateSelected,
+                            ),
+                            const SizedBox(width: 6),
+                            _buildFilterChip(
+                              'waiting_human',
+                              strings('waiting_filter'),
+                              _selectedFilter,
+                              _onStateSelected,
+                            ),
+                            const SizedBox(width: 6),
+                            _buildFilterChip(
+                              'open',
+                              strings('open_filter'),
+                              _selectedFilter,
+                              _onStateSelected,
+                            ),
+                            const SizedBox(width: 6),
+                            _buildFilterChip(
+                              'closed',
+                              strings('closed_filter'),
+                              _selectedFilter,
+                              _onStateSelected,
+                            ),
+
+                            const SizedBox(width: 8),
+                            Container(
+                              height: 16,
+                              width: 1,
+                              color: const Color(0xFFE2E8F0),
+                            ),
+                            const SizedBox(width: 8),
+
+                            // Ownership Filter Chips
+                            _buildFilterChip(
+                              'all',
+                              strings('ownership_all'),
+                              _selectedOwnership,
+                              _onOwnershipSelected,
+                            ),
+                            const SizedBox(width: 6),
+                            _buildFilterChip(
+                              'assigned',
+                              strings('ownership_assigned'),
+                              _selectedOwnership,
+                              _onOwnershipSelected,
+                            ),
+                            const SizedBox(width: 6),
+                            _buildFilterChip(
+                              'unassigned',
+                              strings('ownership_unassigned'),
+                              _selectedOwnership,
+                              _onOwnershipSelected,
+                            ),
+                          ],
+                        ),
                       ),
 
-                      const SizedBox(width: 12),
-                      Container(
-                        height: 18,
-                        width: 1,
-                        color: AppColors.borderHairline,
-                      ),
-                      const SizedBox(width: 12),
+                      // Active Filters Indicator & Clear All
+                      if (_activeFiltersCount > 0) ...[
+                        const SizedBox(height: 6),
+                        ActiveFiltersHeader(
+                          activeCount: _activeFiltersCount,
+                          onClear: _clearAllFilters,
+                        ),
+                      ],
 
-                      // Ownership Filter Chips
-                      _buildFilterChip(
-                        'all',
-                        strings('ownership_all'),
-                        _selectedOwnership,
-                        _onOwnershipSelected,
-                      ),
-                      const SizedBox(width: 6),
-                      _buildFilterChip(
-                        'assigned',
-                        strings('ownership_assigned'),
-                        _selectedOwnership,
-                        _onOwnershipSelected,
-                      ),
-                      const SizedBox(width: 6),
-                      _buildFilterChip(
-                        'unassigned',
-                        strings('ownership_unassigned'),
-                        _selectedOwnership,
-                        _onOwnershipSelected,
+                      const SizedBox(height: 10),
+
+                      // Search TextField matching UI Board
+                      TextField(
+                        controller: _searchController,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          color: AppColors.headingNavy,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: strings('search_conversations'),
+                          hintStyle: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF94A3B8),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            size: 20,
+                            color: Color(0xFF94A3B8),
+                          ),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  onPressed: () => _searchController.clear(),
+                                  color: const Color(0xFF94A3B8),
+                                )
+                              : null,
+                          isDense: true,
+                          filled: true,
+                          fillColor: const Color(0xFFF1F5F9),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
 
-                // 3. Active Filters Indicator & Clear All
-                if (_activeFiltersCount > 0) ...[
-                  const SizedBox(height: 6),
-                  ActiveFiltersHeader(
-                    activeCount: _activeFiltersCount,
-                    onClear: _clearAllFilters,
+                // Error Display
+                if (provider.conversationsError != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildErrorCard(
+                      provider.conversationsError!,
+                      provider.lastRequestId,
+                      strings,
+                    ),
                   ),
-                ],
+
+                // Conversation List or Empty State
+                Expanded(
+                  child: filtered.isEmpty
+                      ? (_activeFiltersCount > 0
+                          ? FilterEmptyState(
+                              title: strings('no_filtered_results'),
+                              subtitle: strings('no_filtered_results_hint'),
+                              onClearFilters: _clearAllFilters,
+                              clearButtonText: strings('reset_all_filters'),
+                            )
+                          : _buildEmptyState(strings))
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isTablet = constraints.maxWidth >= 600;
+                            if (isTablet) {
+                              return GridView.builder(
+                                padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 80.h),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 2.4,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 10,
+                                ),
+                                itemCount: filtered.length,
+                                itemBuilder: (context, index) {
+                                  final item = filtered[index];
+                                  return _buildConversationCard(item, strings);
+                                },
+                              );
+                            }
+                            return ListView.separated(
+                              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 80.h),
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, _) => SizedBox(height: 8.h),
+                              itemBuilder: (context, index) {
+                                final item = filtered[index];
+                                return _buildConversationCard(item, strings);
+                              },
+                            );
+                          },
+                        ),
+                ),
               ],
             ),
           ),
 
-          // Error Display
-          if (provider.conversationsError != null)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _buildErrorCard(
-                provider.conversationsError!,
-                provider.lastRequestId,
-                strings,
+          // Floating Action Button matching UI Board
+          PositionedDirectional(
+            end: 16,
+            bottom: 16,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton.small(
+                heroTag: 'inbox_compose_fab',
+                backgroundColor: AppColors.primary,
+                elevation: 0,
+                onPressed: () {},
+                child: const Icon(
+                  Icons.edit_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
-
-          // Conversation List or Empty State
-          Expanded(
-            child: filtered.isEmpty
-                ? (_activeFiltersCount > 0
-                      ? FilterEmptyState(
-                          title: strings('no_filtered_results'),
-                          subtitle: strings('no_filtered_results_hint'),
-                          onClearFilters: _clearAllFilters,
-                          clearButtonText: strings('reset_all_filters'),
-                        )
-                      : _buildEmptyState(strings))
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final item = filtered[index];
-                      return _buildConversationCard(item, strings);
-                    },
-                  ),
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -411,14 +551,18 @@ class _InboxTabState extends State<InboxTab> {
       selected: isSelected,
       onSelected: (_) => onSelected(key),
       selectedColor: AppColors.primary,
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: Colors.white,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : AppColors.onSurface,
+        color: isSelected ? Colors.white : const Color(0xFF475569),
         fontSize: 12,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
       ),
-      side: BorderSide.none,
+      side: BorderSide(
+        color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0),
+        width: 1,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
     );
   }
 
@@ -429,25 +573,27 @@ class _InboxTabState extends State<InboxTab> {
     final customerName = conv.customer.displayName ?? conv.customer.id;
     final isWaiting = conv.state == 'waiting_human';
     final detectedChannel = _detectChannel(conv);
+    final timeStr = _formatLastActivity(conv.lastActivityAt);
 
     return InkWell(
       onTap: () => widget.onConversationSelected(conv),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceCanvas,
-          borderRadius: BorderRadius.circular(14),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isWaiting
-                ? AppColors.statusWarning.withValues(alpha: 0.5)
-                : AppColors.borderHairline,
+                ? const Color(0xFFFCA5A5)
+                : const Color(0xFFF1F5F9),
+            width: isWaiting ? 1.2 : 1,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x05000000),
-              blurRadius: 4,
-              offset: Offset(0, 1),
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -455,105 +601,118 @@ class _InboxTabState extends State<InboxTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Avatar
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: isWaiting
-                      ? AppColors.statusWarningContainer
-                      : AppColors.primaryFixed,
-                  child: Text(
-                    customerName.isNotEmpty
-                        ? customerName.characters.first.toUpperCase()
-                        : '?',
-                    style: TextStyle(
-                      color: isWaiting
-                          ? AppColors.statusWarning
-                          : AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                // Avatar with Channel Badge overlay
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: isWaiting
+                          ? const Color(0xFFFEE2E2)
+                          : AppColors.surfaceContainerLow,
+                      child: Text(
+                        customerName.isNotEmpty
+                            ? customerName.characters.first.toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          color: isWaiting
+                              ? const Color(0xFFEF4444)
+                              : AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
-                  ),
+                    PositionedDirectional(
+                      end: -2,
+                      bottom: -2,
+                      child: ChannelBadge(
+                        channel: detectedChannel,
+                        size: 9,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 12),
+
+                // Center Info: Name + Status & Last Message Preview
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    customerName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.onSurface,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                ChannelBadge(
-                                  channel: detectedChannel,
-                                  size: 11,
-                                ),
-                              ],
+                          Flexible(
+                            child: Text(
+                              customerName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.headingNavy,
+                              ),
                             ),
                           ),
-                          _buildStateBadge(conv.state, strings),
+                          const SizedBox(width: 6),
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text(
-                            conv.id.length > 8
-                                ? conv.id.substring(0, 8)
-                                : conv.id,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontFamily: 'monospace',
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                          if (conv.priority != 'normal') ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.statusErrorContainer,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                conv.priority,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.statusError,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+                      const SizedBox(height: 3),
+                      Text(
+                        conv.labels.isNotEmpty
+                            ? conv.labels.first
+                            : (conv.state == 'waiting_human'
+                                ? 'هل يمكن التحدث مع موظف الدعم؟'
+                                : 'مرحباً، أود الاستفسار عن توفر المنتج...'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                        ),
                       ),
                     ],
                   ),
                 ),
+
+                const SizedBox(width: 8),
+
+                // Trailing Info: Time & Status Pill Badge
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (timeStr != null)
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Text(
+                          timeStr,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 6),
+                    _buildStateBadge(conv.state, strings),
+                  ],
+                ),
               ],
             ),
 
-            // Labels & Ownership footer
+            // Labels & Ownership row (if any)
             if (conv.labels.isNotEmpty || conv.assignment != null) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
@@ -561,27 +720,28 @@ class _InboxTabState extends State<InboxTab> {
                   if (conv.assignment != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                        horizontal: 7,
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
-                            Icons.person_pin_rounded,
-                            size: 12,
+                          Icon(
+                            Icons.person_outline_rounded,
+                            size: 11,
                             color: AppColors.primary,
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 3),
                           Text(
                             'معيّن',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.onSurface,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -590,18 +750,19 @@ class _InboxTabState extends State<InboxTab> {
                   ...conv.labels.map(
                     (lbl) => Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                        horizontal: 7,
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLow,
+                        color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         '#$lbl',
                         style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textMuted,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
                         ),
                       ),
                     ),
@@ -622,33 +783,27 @@ class _InboxTabState extends State<InboxTab> {
 
     switch (state) {
       case 'waiting_human':
-        bg = AppColors.statusWarningContainer;
-        fg = AppColors.statusWarning;
+        bg = const Color(0xFFFEE2E2);
+        fg = const Color(0xFFEF4444);
         label = strings('waiting_filter');
         break;
       case 'closed':
-        bg = AppColors.surfaceContainerLow;
-        fg = AppColors.textMuted;
+        bg = const Color(0xFFF1F5F9);
+        fg = const Color(0xFF64748B);
         label = strings('closed_filter');
         break;
       case 'open':
       default:
-        bg = AppColors.statusSuccessContainer;
-        fg = AppColors.statusSuccess;
+        bg = const Color(0xFFECFDF5);
+        fg = const Color(0xFF10B981);
         label = strings('open_filter');
         break;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: fg),
-      ),
+    return StatusBadge(
+      label: label,
+      color: fg,
+      backgroundColor: bg,
     );
   }
 
@@ -659,10 +814,18 @@ class _InboxTabState extends State<InboxTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.inbox_rounded,
-              size: 54,
-              color: AppColors.outlineVariant,
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.inbox_outlined,
+                size: 36,
+                color: AppColors.textMuted,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -673,7 +836,7 @@ class _InboxTabState extends State<InboxTab> {
                 color: AppColors.onSurface,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               strings('no_messages'),
               style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
@@ -719,13 +882,16 @@ class _InboxTabState extends State<InboxTab> {
             ],
           ),
           if (requestId != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${strings('request_id')}: $requestId',
-              style: const TextStyle(
-                fontSize: 11,
-                fontFamily: 'monospace',
-                color: AppColors.statusError,
+            const SizedBox(height: 6),
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(
+                '${strings('request_id')}: $requestId',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: AppColors.statusError,
+                ),
               ),
             ),
           ],

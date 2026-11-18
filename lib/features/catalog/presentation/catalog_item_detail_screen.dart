@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/common_ui_widgets.dart';
 import '../../../app/localization/app_localizations.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/catalog_models.dart';
@@ -248,7 +249,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                         for (final def in managedDefinitions)
                           if (values.containsKey(def.key))
                             CatalogSpecificationInput(
-                              key: ValueKey('variant-'+def.key),
+                              key: ValueKey('variant-${def.key}'),
                               definition: def,
                               value: values[def.key],
                               enabled: !busy,
@@ -263,7 +264,7 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                             ),
                         if (notChosen.isNotEmpty)
                           DropdownButtonFormField<String>(
-                            key: ValueKey('variant-add-'+notChosen.length.toString()),
+                            key: ValueKey('variant-add-${notChosen.length}'),
                             isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: 'إضافة معلومة من القالب'),
@@ -428,8 +429,10 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
     for (final row in rows) { row.dispose(); }
     nameController.dispose();
     if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حفظ خيار المنتج')));
+      showAppAlertDialog(
+        context,
+        message: 'تم حفظ خيار المنتج',
+      );
     }
   }
 
@@ -736,7 +739,6 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                       return;
                     }
                     setDialogState(() { isSaving = true; offerError = null; });
-                    final messenger = ScaffoldMessenger.of(context);
                     final result = existing == null
                         ? await widget.catalogProvider.createOffer(
                       widget.businessId,
@@ -788,13 +790,11 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                     if (!mounted || !ctx.mounted) return;
                     if (result != null) {
                       Navigator.of(ctx).pop();
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(existing == null
+                      showAppAlertDialog(
+                        context,
+                        message: existing == null
                             ? strings('offer_created_success')
-                            : strings('offer_updated_success')),
-                          backgroundColor: AppColors.statusSuccess,
-                        ),
+                            : strings('offer_updated_success'),
                       );
                     } else {
                       setDialogState(() {
@@ -836,7 +836,33 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
         final contract = provider.entityContract;
 
         return Scaffold(
+          backgroundColor: AppColors.background,
           appBar: AppBar(
+            backgroundColor: AppColors.surfaceCanvas,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(48),
+              child: Column(
+                children: [
+                  TabBar(
+                    controller: _tabController,
+                    indicatorColor: AppColors.primary,
+                    indicatorWeight: 3,
+                    labelColor: AppColors.primary,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    unselectedLabelColor: AppColors.textMuted,
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
+                    tabs: [
+                      Tab(text: strings('overview_tab')),
+                      Tab(text: '${strings('variants_tab')} (${variants.length})'),
+                      Tab(text: '${strings('offers_tab')} (${offers.length})'),
+                    ],
+                  ),
+                  const Divider(height: 1, color: AppColors.borderHairline),
+                ],
+              ),
+            ),
             title: Text(
               item?.name ?? strings('catalog_items_title'),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -869,14 +895,6 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                 onPressed: provider.isLoadingItemDetail ? null : _loadDetails,
               ),
             ],
-            bottom: TabBar(
-              controller: _tabController,
-              tabs: [
-                Tab(text: strings('overview_tab')),
-                Tab(text: '${strings('variants_tab')} (${variants.length})'),
-                Tab(text: '${strings('offers_tab')} (${offers.length})'),
-              ],
-            ),
           ),
           body: provider.isLoadingItemDetail && item == null
               ? const Center(child: CircularProgressIndicator())
@@ -935,203 +953,197 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
     final statusBg = _getStatusBgColor(item.status);
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         // Main Info Card
-        Card(
-          elevation: 0,
-          color: AppColors.surfaceCanvas,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppColors.borderHairline),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCanvas,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.borderHairline),
+            boxShadow: AppShadows.card,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.onSurface,
-                        ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.onSurface,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: statusBg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        contract.labelItemStatus(item.status),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
-                        ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                    child: Text(
+                      contract.labelItemStatus(item.status),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${strings('item_type')}: ${merchantItemTypeLabel(item.itemType)}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
                 ),
-                const SizedBox(height: 8),
+              ),
+              if (item.shortDescription != null &&
+                  item.shortDescription!.isNotEmpty) ...[
+                const SizedBox(height: 10),
                 Text(
-                  '${strings('item_type')}: ${merchantItemTypeLabel(item.itemType)}',
+                  item.shortDescription!,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              if (item.longDescription != null &&
+                  item.longDescription!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                Text(
+                  item.longDescription!,
                   style: const TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                    color: AppColors.textMuted,
+                    height: 1.4,
                   ),
                 ),
-                if (item.shortDescription != null &&
-                    item.shortDescription!.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    item.shortDescription!,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-                if (item.longDescription != null &&
-                    item.longDescription!.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-                  Text(
-                    item.longDescription!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textMuted,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
               ],
-            ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
 
         // Modes Card
-        Card(
-          elevation: 0,
-          color: AppColors.surfaceCanvas,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppColors.borderHairline),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCanvas,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.borderHairline),
+            boxShadow: AppShadows.card,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInfoRow(
-                  strings('pricing_mode'),
-                  merchantCatalogOptionLabel(contract.labelPricingMode(item.pricingMode)),
-                  Icons.price_change_rounded,
-                ),
-                const Divider(height: 16),
-                _buildInfoRow(
-                  strings('availability_mode'),
-                  merchantCatalogOptionLabel(contract.labelAvailabilityMode(item.availabilityMode)),
-                  Icons.event_available_rounded,
-                ),
-                const Divider(height: 16),
-                _buildInfoRow(
-                  strings('fulfillment_mode'),
-                  merchantCatalogOptionLabel(contract.labelFulfillmentMode(item.fulfillmentMode)),
-                  Icons.local_shipping_rounded,
-                ),
-                const Divider(height: 16),
-                _buildInfoRow(
-                  strings('requires_confirmation'),
-                  item.requiresConfirmation
-                      ? strings('status_pending')
-                      : strings('status_approved'),
-                  Icons.verified_user_rounded,
-                ),
-              ],
-            ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow(
+                strings('pricing_mode'),
+                merchantCatalogOptionLabel(contract.labelPricingMode(item.pricingMode)),
+                Icons.price_change_rounded,
+              ),
+              const Divider(height: 16),
+              _buildInfoRow(
+                strings('availability_mode'),
+                merchantCatalogOptionLabel(contract.labelAvailabilityMode(item.availabilityMode)),
+                Icons.event_available_rounded,
+              ),
+              const Divider(height: 16),
+              _buildInfoRow(
+                strings('fulfillment_mode'),
+                merchantCatalogOptionLabel(contract.labelFulfillmentMode(item.fulfillmentMode)),
+                Icons.local_shipping_rounded,
+              ),
+              const Divider(height: 16),
+              _buildInfoRow(
+                strings('requires_confirmation'),
+                item.requiresConfirmation
+                    ? strings('status_pending')
+                    : strings('status_approved'),
+                Icons.verified_user_rounded,
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
 
         if (_schemaLoading) const LinearProgressIndicator(),
         // Custom Attributes Card
-        Card(
-          elevation: 0,
-          color: AppColors.surfaceCanvas,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppColors.borderHairline),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCanvas,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.borderHairline),
+            boxShadow: AppShadows.card,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings('attributes'),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface,
-                  ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                strings('attributes'),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.onSurface,
                 ),
-                const SizedBox(height: 12),
-                if (item.attributes.isEmpty)
-                  Text(
-                    'لم تضف معلومات أو مواصفات بعد',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                  )
-                else
-                  ...item.attributes.entries.map((e) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceSubtle,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              specificationName(e.key,
-                                _schema?.definitions ?? <AttributeDefinition>[]),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.onSurface,
-                              ),
+              ),
+              const SizedBox(height: 12),
+              if (item.attributes.isEmpty)
+                Text(
+                  'لم تضف معلومات أو مواصفات بعد',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                )
+              else
+                ...item.attributes.entries.map((e) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Text(
+                            specificationName(e.key,
+                              _schema?.definitions ?? <AttributeDefinition>[]),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.onSurface,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              displaySpecification(e.value),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textMuted,
-                              ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            displaySpecification(e.value),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  }),
-              ],
-            ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
           ),
         ),
       ],
@@ -1171,34 +1183,36 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
   // Tab 2: Variants
   // ==========================================
 
-  Widget _postCreateBanner() => Card(
-    margin: const EdgeInsets.fromLTRB(16, 16, 16, 6),
-    color: AppColors.surfaceCanvas,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(children: [
-            Icon(Icons.check_circle_outline_rounded,
-              color: AppColors.statusSuccess),
-            SizedBox(width: 10),
-            Expanded(child: Text('تم حفظ المنتج كمسودة',
-              style: TextStyle(fontWeight: FontWeight.bold))),
-          ]),
-          const SizedBox(height: 8),
-          const Text(
-            'هذه الخطوة اختيارية. إذا كان للمنتج مقاسات أو ألوان أو خيارات مختلفة، أضفها الآن. يمكنك تجاوزها والعودة إليها لاحقًا.',
+  Widget _postCreateBanner() => Container(
+    margin: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 6),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      border: Border.all(color: AppColors.borderHairline),
+    ),
+    padding: const EdgeInsets.all(AppSpacing.lg),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(children: [
+          Icon(Icons.check_circle_outline_rounded,
+            color: AppColors.statusSuccess),
+          SizedBox(width: 10),
+          Expanded(child: Text('تم حفظ المنتج كمسودة',
+            style: TextStyle(fontWeight: FontWeight.bold))),
+        ]),
+        const SizedBox(height: 8),
+        const Text(
+          'هذه الخطوة اختيارية. إذا كان للمنتج مقاسات أو ألوان أو خيارات مختلفة، أضفها الآن. يمكنك تجاوزها والعودة إليها لاحقًا.',
+        ),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('إنهاء الآن'),
           ),
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('إنهاء الآن'),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     ),
   );
 
@@ -1296,15 +1310,15 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                 final statusBg = _getStatusBgColor(v.status);
                 final statusLabel = contract.labelVariantStatus(v.status);
 
-                return Card(
-                  elevation: 0,
-                  color: AppColors.surfaceCanvas,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.borderHairline),
+                return Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCanvas,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.borderHairline),
+                    boxShadow: AppShadows.subtle,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(AppSpacing.md),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1482,15 +1496,15 @@ class _CatalogItemDetailScreenState extends State<CatalogItemDetailScreen>
                 final priceVerifLabel = contract
                     .labelPriceVerification(offer.priceVerificationStatus);
 
-                return Card(
-                  elevation: 0,
-                  color: AppColors.surfaceCanvas,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.borderHairline),
+                return Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCanvas,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.borderHairline),
+                    boxShadow: AppShadows.subtle,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(AppSpacing.md),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

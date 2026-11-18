@@ -78,9 +78,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final sub = provider.subscription;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('إدارة الاشتراك والحصص'),
         centerTitle: true,
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       body: RefreshIndicator(
         onRefresh: _loadData,
@@ -103,7 +107,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: AppColors.statusWarningContainer,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                   border: Border.all(
                     color: AppColors.statusWarning.withValues(alpha: 0.3),
                   ),
@@ -153,8 +157,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             // Compare Plans Button Card
             Card(
               elevation: 0,
+              color: AppColors.surface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 side: const BorderSide(color: AppColors.borderHairline),
               ),
               child: ListTile(
@@ -194,9 +199,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   vertical: 24,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceCanvas.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(14),
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                   border: Border.all(color: AppColors.borderHairline),
+                  boxShadow: AppShadows.subtle,
                 ),
                 child: const Center(
                   child: Text(
@@ -209,9 +215,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               ...provider.payments.map(
                 (p) => Card(
                   elevation: 0,
+                  color: AppColors.surface,
                   margin: const EdgeInsets.only(bottom: 8),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     side: const BorderSide(color: AppColors.borderHairline),
                   ),
                   child: ListTile(

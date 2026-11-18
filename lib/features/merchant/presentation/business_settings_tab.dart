@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mujeeb24_app/core/widgets/common_ui_widgets.dart';
 import 'package:mujeeb24_app/app/localization/app_localizations.dart';
 import 'package:mujeeb24_app/app/theme/app_theme.dart';
 import 'package:mujeeb24_app/core/models/auth_models.dart';
@@ -121,11 +122,9 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
     );
 
     if (mounted && success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(strings('profile_updated')),
-          backgroundColor: AppColors.statusSuccess,
-        ),
+      showAppAlertDialog(
+        context,
+        message: strings('profile_updated'),
       );
     }
   }
@@ -145,11 +144,9 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
     );
 
     if (mounted && success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(strings('policy_updated')),
-          backgroundColor: AppColors.statusSuccess,
-        ),
+      showAppAlertDialog(
+        context,
+        message: strings('policy_updated'),
       );
     }
   }
@@ -175,53 +172,80 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
 
           // Business Profile Section
           _buildSectionHeader(strings('business_profile'), Icons.store_rounded),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: strings('business_name'),
-                      isDense: true,
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: AppColors.borderHairline),
+              boxShadow: AppShadows.subtle,
+            ),
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: strings('business_name'),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _currencyController,
-                          decoration: InputDecoration(
-                            labelText: strings('default_currency'),
-                            isDense: true,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _currencyController,
+                        decoration: InputDecoration(
+                          labelText: strings('default_currency'),
+                          isDense: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _localeController,
-                          decoration: InputDecoration(
-                            labelText: strings('locale'),
-                            isDense: true,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _localeController,
+                        decoration: InputDecoration(
+                          labelText: strings('locale'),
+                          isDense: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _timezoneController,
-                    decoration: InputDecoration(
-                      labelText: strings('timezone'),
-                      isDense: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _timezoneController,
+                  decoration: InputDecoration(
+                    labelText: strings('timezone'),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
                     onPressed: isActionLoading
                         ? null
                         : () => _saveProfile(strings),
@@ -234,108 +258,129 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
                               strokeWidth: 2,
                             ),
                           )
-                        : Text(strings('save_changes')),
+                        : Text(strings('save_changes'),
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xl),
 
           // AI Policy Section
           _buildSectionHeader(
             strings('ai_policy_title'),
             Icons.smart_toy_outlined,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Card(
+            elevation: 0,
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              side: const BorderSide(color: AppColors.borderHairline),
+            ),
+            clipBehavior: Clip.antiAlias,
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // AI Mode selector
-                  DropdownButtonFormField<String>(
-                    initialValue: ['auto', 'suggest', 'off'].contains(_aiMode)
-                        ? _aiMode
-                        : 'suggest',
-                    decoration: InputDecoration(
-                      labelText: strings('ai_mode'),
-                      isDense: true,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // AI Mode selector
+                DropdownButtonFormField<String>(
+                  initialValue: ['auto', 'suggest', 'off'].contains(_aiMode)
+                      ? _aiMode
+                      : 'suggest',
+                  decoration: InputDecoration(
+                    labelText: strings('ai_mode'),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'auto',
-                        child: Text('تلقائي كامل (auto)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'suggest',
-                        child: Text('اقتراح للموظف (suggest)'),
-                      ),
-                      DropdownMenuItem(value: 'off', child: Text('معطل (off)')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => _aiMode = val);
-                    },
                   ),
-                  const SizedBox(height: 12),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'auto',
+                      child: Text('تلقائي كامل (auto)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'suggest',
+                      child: Text('اقتراح للموظف (suggest)'),
+                    ),
+                    DropdownMenuItem(value: 'off', child: Text('معطل (off)')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _aiMode = val);
+                  },
+                ),
+                const SizedBox(height: 12),
 
-                  // Policy Switches
-                  SwitchListTile(
-                    title: Text(
-                      strings('default_human_review'),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    value: _defaultHumanReview,
-                    onChanged: (val) =>
-                        setState(() => _defaultHumanReview = val),
-                    contentPadding: EdgeInsets.zero,
+                // Policy Switches
+                SwitchListTile.adaptive(
+                  title: Text(
+                    strings('default_human_review'),
+                    style: const TextStyle(fontSize: 14),
                   ),
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    title: Text(
-                      strings('allow_auto_reply'),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    value: _allowAutoReply,
-                    onChanged: (val) => setState(() => _allowAutoReply = val),
-                    contentPadding: EdgeInsets.zero,
+                  value: _defaultHumanReview,
+                  onChanged: (val) =>
+                      setState(() => _defaultHumanReview = val),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const Divider(height: 1),
+                SwitchListTile.adaptive(
+                  title: Text(
+                    strings('allow_auto_reply'),
+                    style: const TextStyle(fontSize: 14),
                   ),
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    title: Text(
-                      strings('allow_auto_lead'),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    value: _allowAutoLeadCreation,
-                    onChanged: (val) =>
-                        setState(() => _allowAutoLeadCreation = val),
-                    contentPadding: EdgeInsets.zero,
+                  value: _allowAutoReply,
+                  onChanged: (val) => setState(() => _allowAutoReply = val),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const Divider(height: 1),
+                SwitchListTile.adaptive(
+                  title: Text(
+                    strings('allow_auto_lead'),
+                    style: const TextStyle(fontSize: 14),
                   ),
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    title: Text(
-                      strings('allow_auto_tx_draft'),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    value: _allowAutoTransactionDraft,
-                    onChanged: (val) =>
-                        setState(() => _allowAutoTransactionDraft = val),
-                    contentPadding: EdgeInsets.zero,
+                  value: _allowAutoLeadCreation,
+                  onChanged: (val) =>
+                      setState(() => _allowAutoLeadCreation = val),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const Divider(height: 1),
+                SwitchListTile.adaptive(
+                  title: Text(
+                    strings('allow_auto_tx_draft'),
+                    style: const TextStyle(fontSize: 14),
                   ),
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    title: Text(
-                      strings('allow_auto_confirm'),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    value: _allowAutoConfirmation,
-                    onChanged: (val) =>
-                        setState(() => _allowAutoConfirmation = val),
-                    contentPadding: EdgeInsets.zero,
+                  value: _allowAutoTransactionDraft,
+                  onChanged: (val) =>
+                      setState(() => _allowAutoTransactionDraft = val),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const Divider(height: 1),
+                SwitchListTile.adaptive(
+                  title: Text(
+                    strings('allow_auto_confirm'),
+                    style: const TextStyle(fontSize: 14),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
+                  value: _allowAutoConfirmation,
+                  onChanged: (val) =>
+                      setState(() => _allowAutoConfirmation = val),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
                     onPressed: isActionLoading
                         ? null
                         : () => _savePolicy(strings),
@@ -348,14 +393,15 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
                               strokeWidth: 2,
                             ),
                           )
-                        : Text(strings('save_changes')),
+                        : Text(strings('save_changes'),
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
             ),
           ),
-          const SizedBox(height: 24),
-
+          const SizedBox(height: AppSpacing.xl),
           // Team & Audit Section
           if (widget.onNavigateToTeam != null ||
               widget.onNavigateToAuditLogs != null) ...[
@@ -363,20 +409,37 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
               strings('team_and_audit'),
               Icons.groups_rounded,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Card(
+              elevation: 0,
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                side: const BorderSide(color: AppColors.borderHairline),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
                   if (widget.onNavigateToTeam != null)
                     ListTile(
                       key: const Key('tile_team_management'),
-                      leading: const Icon(
-                        Icons.people_alt_rounded,
-                        color: AppColors.primary,
+                      leading: Container(
+                        padding: const EdgeInsets.all(AppSpacing.xs),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: const Icon(
+                          Icons.people_alt_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                       ),
-                      title: Text(strings('team_members_title')),
-                      subtitle: Text(strings('team_members_subtitle')),
-                      trailing: const Icon(Icons.chevron_left_rounded),
+                      title: Text(strings('team_members_title'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      subtitle: Text(strings('team_members_subtitle'),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.textMuted),
                       onTap: widget.onNavigateToTeam,
                     ),
                   if (widget.onNavigateToTeam != null &&
@@ -385,19 +448,29 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
                   if (widget.onNavigateToAuditLogs != null)
                     ListTile(
                       key: const Key('tile_audit_logs'),
-                      leading: const Icon(
-                        Icons.history_rounded,
-                        color: AppColors.primary,
+                      leading: Container(
+                        padding: const EdgeInsets.all(AppSpacing.xs),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: const Icon(
+                          Icons.history_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                       ),
-                      title: Text(strings('audit_logs_title')),
-                      subtitle: Text(strings('audit_logs_subtitle')),
-                      trailing: const Icon(Icons.chevron_left_rounded),
+                      title: Text(strings('audit_logs_title'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      subtitle: Text(strings('audit_logs_subtitle'),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.textMuted),
                       onTap: widget.onNavigateToAuditLogs,
                     ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
           ],
 
           // Platform Administration Section (Visible to Platform Admins)
@@ -406,21 +479,38 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
               strings('platform_title'),
               Icons.admin_panel_settings_rounded,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Card(
+              elevation: 0,
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                side: const BorderSide(color: AppColors.borderHairline),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: ListTile(
                 key: const Key('tile_platform_administration'),
-                leading: const Icon(
-                  Icons.admin_panel_settings_rounded,
-                  color: AppColors.primary,
+                leading: Container(
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: const Icon(
+                    Icons.admin_panel_settings_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                 ),
-                title: Text(strings('platform_title')),
-                subtitle: Text(strings('platform_subtitle')),
-                trailing: const Icon(Icons.chevron_left_rounded),
+                title: Text(strings('platform_title'),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: Text(strings('platform_subtitle'),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.textMuted),
                 onTap: widget.onNavigateToPlatform,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
           ],
 
           // Subscription & Billing Section
@@ -430,22 +520,39 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
               'الاشتراك والفوترة',
               Icons.workspace_premium_rounded,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Card(
+              elevation: 0,
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                side: const BorderSide(color: AppColors.borderHairline),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
                   if (widget.onNavigateToSubscription != null)
                     ListTile(
                       key: const Key('tile_subscription_management'),
-                      leading: const Icon(
-                        Icons.donut_large_rounded,
-                        color: AppColors.primary,
+                      leading: Container(
+                        padding: const EdgeInsets.all(AppSpacing.xs),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: const Icon(
+                          Icons.donut_large_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                       ),
-                      title: const Text('الاشتراك الحالي ومتابعة الحصص'),
+                      title: const Text('الاشتراك الحالي ومتابعة الحصص',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       subtitle: const Text(
                         'عرض باقة المتجر واستهلاك ردود الذكاء الاصطناعي والقنوات',
+                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
-                      trailing: const Icon(Icons.chevron_left_rounded),
+                      trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.textMuted),
                       onTap: widget.onNavigateToSubscription,
                     ),
                   if (widget.onNavigateToPlans != null) ...[
@@ -453,22 +560,32 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
                       const Divider(height: 1),
                     ListTile(
                       key: const Key('tile_subscription_plans'),
-                      leading: const Icon(
-                        Icons.view_carousel_rounded,
-                        color: AppColors.primary,
+                      leading: Container(
+                        padding: const EdgeInsets.all(AppSpacing.xs),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: const Icon(
+                          Icons.view_carousel_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                       ),
-                      title: const Text('ترقية الباقة ومقارنة الأسعار'),
+                      title: const Text('ترقية الباقة ومقارنة الأسعار',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       subtitle: const Text(
                         'مقارنة باقات بداية، متجر، نمو، احتراف، وأعمال',
+                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
-                      trailing: const Icon(Icons.chevron_left_rounded),
+                      trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.textMuted),
                       onTap: widget.onNavigateToPlans,
                     ),
                   ],
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
           ],
 
           // Workspace & Account Actions
@@ -476,40 +593,74 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
             'الحساب ومساحة العمل',
             Icons.manage_accounts_rounded,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Card(
+            elevation: 0,
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              side: const BorderSide(color: AppColors.borderHairline),
+            ),
+            clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(
-                    Icons.language_rounded,
-                    color: AppColors.primary,
+                  leading: Container(
+                    padding: const EdgeInsets.all(AppSpacing.xs),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: const Icon(
+                      Icons.language_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
-                  title: Text(strings('switch_language')),
-                  trailing: const Icon(Icons.chevron_left_rounded),
+                  title: Text(strings('switch_language'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.textMuted),
                   onTap: widget.onToggleLanguage,
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(
-                    Icons.swap_horiz_rounded,
-                    color: AppColors.primary,
+                  leading: Container(
+                    padding: const EdgeInsets.all(AppSpacing.xs),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: const Icon(
+                      Icons.swap_horiz_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
-                  title: Text(strings('select_business')),
-                  trailing: const Icon(Icons.chevron_left_rounded),
+                  title: Text(strings('select_business'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.textMuted),
                   onTap: widget.onSwitchBusiness,
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(
-                    Icons.logout_rounded,
-                    color: AppColors.statusError,
+                  leading: Container(
+                    padding: const EdgeInsets.all(AppSpacing.xs),
+                    decoration: BoxDecoration(
+                      color: AppColors.statusError.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: const Icon(
+                      Icons.logout_rounded,
+                      color: AppColors.statusError,
+                      size: 20,
+                    ),
                   ),
                   title: Text(
                     strings('logout'),
                     style: const TextStyle(
                       color: AppColors.statusError,
                       fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
                   onTap: widget.onLogout,
@@ -526,8 +677,15 @@ class _BusinessSettingsTabState extends State<BusinessSettingsTab> {
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primary),
-        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Icon(icon, size: 18, color: AppColors.primary),
+        ),
+        const SizedBox(width: AppSpacing.sm),
         Text(
           title,
           style: const TextStyle(

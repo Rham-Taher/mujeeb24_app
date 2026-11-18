@@ -44,6 +44,8 @@ dependencies:
   flutter_secure_storage: ^11.1.0
   # Open external HTTPS channel authorization pages using OS browser.
   url_launcher: ^6.3.3
+  flutter_screenutil: ^5.9.3
+  local_auth: ^2.3.0
 
 dev_dependencies:
   flutter_test:

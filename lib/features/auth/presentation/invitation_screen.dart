@@ -150,6 +150,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
     final auth = widget.authProvider;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(strings('invitation_title')),
         leading: IconButton(
@@ -159,7 +160,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -172,35 +173,71 @@ class _InvitationScreenState extends State<InvitationScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Token Field
-              TextFormField(
-                controller: _tokenController,
-                enabled: !_isInspecting && !_isAccepting,
-                onChanged: (_) => setState(() {
-                  _inspectedInvitation = null;
-                  _localError = null;
-                  _successMessage = null;
-                }),
-                decoration: InputDecoration(
-                  labelText: strings('acceptance_token'),
-                  hintText: 'inv_...',
-                  prefixIcon: const Icon(Icons.vpn_key_outlined, size: 20),
+              // Token Field Card
+              Card(
+                elevation: 0,
+                color: AppColors.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  side: const BorderSide(color: AppColors.borderHairline),
                 ),
-              ),
-              const SizedBox(height: 12),
-
-              ElevatedButton(
-                onPressed: _isInspecting || _isAccepting ? null : _inspectToken,
-                child: _isInspecting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: _tokenController,
+                        enabled: !_isInspecting && !_isAccepting,
+                        onChanged: (_) => setState(() {
+                          _inspectedInvitation = null;
+                          _localError = null;
+                          _successMessage = null;
+                        }),
+                        decoration: InputDecoration(
+                          labelText: strings('acceptance_token'),
+                          hintText: 'inv_...',
+                          filled: true,
+                          fillColor: AppColors.surfaceContainerLow,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderSide: const BorderSide(color: AppColors.borderHairline),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderSide: const BorderSide(color: AppColors.borderHairline),
+                          ),
+                          prefixIcon: const Icon(Icons.vpn_key_outlined, size: 20),
                         ),
-                      )
-                    : Text(strings('inspect_token')),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _isInspecting || _isAccepting ? null : _inspectToken,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          minimumSize: const Size(double.infinity, 44),
+                        ),
+                        child: _isInspecting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                strings('inspect_token'),
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -210,9 +247,9 @@ class _InvitationScreenState extends State<InvitationScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppColors.statusErrorContainer,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     border: Border.all(
-                      color: AppColors.statusError.withValues(alpha: 0.3),
+                      color: AppColors.statusError.withValues(alpha: 0.35),
                     ),
                   ),
                   child: Text(
@@ -220,6 +257,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                     style: const TextStyle(
                       color: AppColors.statusError,
                       fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -232,9 +270,9 @@ class _InvitationScreenState extends State<InvitationScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppColors.statusSuccessContainer,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     border: Border.all(
-                      color: AppColors.statusSuccess.withValues(alpha: 0.3),
+                      color: AppColors.statusSuccess.withValues(alpha: 0.35),
                     ),
                   ),
                   child: Text(
@@ -242,6 +280,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                     style: const TextStyle(
                       color: AppColors.statusSuccess,
                       fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -251,6 +290,12 @@ class _InvitationScreenState extends State<InvitationScreen> {
               // Inspected Invitation Details Card
               if (_inspectedInvitation != null) ...[
                 Card(
+                  elevation: 0,
+                  color: AppColors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    side: const BorderSide(color: AppColors.borderHairline),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -261,9 +306,10 @@ class _InvitationScreenState extends State<InvitationScreen> {
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
+                            color: AppColors.onSurface,
                           ),
                         ),
-                        const Divider(height: 20),
+                        const Divider(height: 20, color: AppColors.borderHairline),
                         _buildRow(
                           strings('business'),
                           _inspectedInvitation!.businessName,
@@ -293,59 +339,146 @@ class _InvitationScreenState extends State<InvitationScreen> {
 
                 // Form for New Account or Button for Existing Account
                 if (!_inspectedInvitation!.canBeAccepted) ...[
-                  const Card(
-                    child: Padding(
+                  Card(
+                    elevation: 0,
+                    color: AppColors.surfaceContainerLow,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      side: const BorderSide(color: AppColors.borderHairline),
+                    ),
+                    child: const Padding(
                       padding: EdgeInsets.all(14),
-                      child: Text('هذه الدعوة غير قابلة للقبول حاليًا. تواصل مع صاحب النشاط لطلب دعوة جديدة.'),
-                    ),
-                  ),
-                ] else if (_inspectedInvitation!.accountState == 'new') ...[
-                  TextFormField(
-                    controller: _displayNameController,
-                    decoration: InputDecoration(
-                      labelText: strings('display_name'),
-                      prefixIcon: const Icon(Icons.person_outline_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: strings('new_password'),
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      helperText: '12–72 بايتًا؛ استخدم كلمة مرور قوية',
-                      suffixIcon: IconButton(
-                        tooltip: _obscurePassword ? 'إظهار كلمة المرور' : 'إخفاء كلمة المرور',
-                        onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword),
-                        icon: Icon(_obscurePassword
-                          ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                      child: Text(
+                        'هذه الدعوة غير قابلة للقبول حاليًا. تواصل مع صاحب النشاط لطلب دعوة جديدة.',
+                        style: TextStyle(fontSize: 13, color: AppColors.textMuted),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _isAccepting ? null : _acceptInvitation,
-                    child: _isAccepting
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(strings('accept_and_create')),
+                ] else if (_inspectedInvitation!.accountState == 'new') ...[
+                  Card(
+                    elevation: 0,
+                    color: AppColors.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      side: const BorderSide(color: AppColors.borderHairline),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextFormField(
+                            controller: _displayNameController,
+                            decoration: InputDecoration(
+                              labelText: strings('display_name'),
+                              filled: true,
+                              fillColor: AppColors.surfaceContainerLow,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: const BorderSide(color: AppColors.borderHairline),
+                              ),
+                              prefixIcon: const Icon(Icons.person_outline_rounded),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            decoration: InputDecoration(
+                              labelText: strings('new_password'),
+                              helperText: '12–72 بايتًا؛ استخدم كلمة مرور قوية',
+                              filled: true,
+                              fillColor: AppColors.surfaceContainerLow,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: const BorderSide(color: AppColors.borderHairline),
+                              ),
+                              prefixIcon: const Icon(Icons.lock_outline_rounded),
+                              suffixIcon: IconButton(
+                                tooltip: _obscurePassword ? 'إظهار كلمة المرور' : 'إخفاء كلمة المرور',
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword),
+                                icon: Icon(_obscurePassword
+                                  ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _isAccepting ? null : _acceptInvitation,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                              ),
+                              minimumSize: const Size(double.infinity, 44),
+                            ),
+                            child: _isAccepting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : Text(
+                                    strings('accept_and_create'),
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ] else ...[
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: Text('لديك حساب بالفعل. سجّل الدخول بالحساب المرتبط بالبريد المدعو قبل قبول الدعوة.'),
-                  ),
-                  TextButton(
-                    onPressed: widget.onBackToLogin,
-                    child: const Text('الذهاب إلى تسجيل الدخول'),
-                  ),
-                  ElevatedButton(
-                    onPressed: !_isAccepting && auth.isAuthenticated
-                      ? _acceptInvitation : null,
-                    child: _isAccepting
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(strings('accept_existing')),
+                  Card(
+                    elevation: 0,
+                    color: AppColors.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      side: const BorderSide(color: AppColors.borderHairline),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              'لديك حساب بالفعل. سجّل الدخول بالحساب المرتبط بالبريد المدعو قبل قبول الدعوة.',
+                              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: widget.onBackToLogin,
+                            child: const Text('الذهاب إلى تسجيل الدخول'),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: !_isAccepting && auth.isAuthenticated
+                              ? _acceptInvitation : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                              ),
+                              minimumSize: const Size(double.infinity, 44),
+                            ),
+                            child: _isAccepting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : Text(
+                                    strings('accept_existing'),
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ],

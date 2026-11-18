@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/localization/app_localizations.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/widgets/common_ui_widgets.dart';
 import '../../../core/models/channel_automation_models.dart';
 import '../providers/channel_automation_provider.dart';
 
@@ -36,16 +37,20 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
     );
   }
 
-  void _showErrorSnackBar(String message, [String? requestId]) {
-    final text = requestId != null ? '$message ($requestId)' : message;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text), backgroundColor: AppColors.error),
+  void _showErrorDialog(String message, [String? requestId]) {
+    showAppAlertDialog(
+      context,
+      message: message,
+      isError: true,
+      requestId: requestId,
     );
   }
 
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.success),
+  void _showSuccessDialog(String message) {
+    showAppAlertDialog(
+      context,
+      message: message,
+      isError: false,
     );
   }
 
@@ -180,9 +185,9 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
                       );
                       if (!mounted) return;
                       if (created != null) {
-                        _showSuccessSnackBar(strings('rule_created_success'));
+                        _showSuccessDialog(strings('rule_created_success'));
                       } else if (widget.channelProvider.actionError != null) {
-                        _showErrorSnackBar(
+                        _showErrorDialog(
                           widget.channelProvider.actionError!,
                           widget.channelProvider.lastRequestId,
                         );
@@ -252,9 +257,9 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
                   );
                   if (!mounted) return;
                   if (updated != null) {
-                    _showSuccessSnackBar(strings('rule_updated_success'));
+                    _showSuccessDialog(strings('rule_updated_success'));
                   } else if (widget.channelProvider.actionError != null) {
-                    _showErrorSnackBar(
+                    _showErrorDialog(
                       widget.channelProvider.actionError!,
                       widget.channelProvider.lastRequestId,
                     );
@@ -282,9 +287,9 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
 
     if (!mounted) return;
     if (updated != null) {
-      _showSuccessSnackBar(strings('rule_updated_success'));
+      _showSuccessDialog(strings('rule_updated_success'));
     } else if (widget.channelProvider.actionError != null) {
-      _showErrorSnackBar(
+      _showErrorDialog(
         widget.channelProvider.actionError!,
         widget.channelProvider.lastRequestId,
       );
@@ -296,8 +301,12 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
     String strings(String key) => AppStrings.get(key, context);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(strings('automation_rules_title')),
+        backgroundColor: AppColors.surfaceCanvas,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -320,7 +329,7 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 10,
                 ),
                 child: Row(
                   children: [
@@ -356,12 +365,12 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
 
               if (provider.rulesError != null)
                 Container(
-                  margin: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.error),
+                    color: AppColors.error.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     provider.rulesError!,
@@ -375,18 +384,34 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.alt_route,
-                              size: 64,
-                              color: AppColors.textSecondary,
+                            Container(
+                              padding: const EdgeInsets.all(AppSpacing.lg),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceMuted.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.alt_route,
+                                size: 48,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             Text(
                               strings('no_automation_rules'),
-                              style: Theme.of(context).textTheme.titleMedium,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 12),
                             ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
+                                ),
+                              ),
                               onPressed: _showCreateRuleDialog,
                               icon: const Icon(Icons.add),
                               label: Text(strings('create_rule')),
@@ -405,15 +430,17 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
                             final rule = provider.automationRules[index];
                             final isActive = rule.status == 'active';
 
-                            return Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceCanvas,
+                                borderRadius: BorderRadius.circular(AppRadius.lg),
+                                border: Border.all(
                                   color: isActive
-                                      ? AppColors.primary.withValues(alpha: 0.5)
-                                      : AppColors.border,
+                                      ? AppColors.primary.withValues(alpha: 0.35)
+                                      : AppColors.borderLightBlue,
+                                  width: isActive ? 1.5 : 1.0,
                                 ),
+                                boxShadow: AppShadows.card,
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
@@ -435,12 +462,14 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
                                           icon: const Icon(
                                             Icons.edit_outlined,
                                             size: 20,
+                                            color: AppColors.textSecondary,
                                           ),
                                           onPressed: () =>
                                               _showEditRuleDialog(rule),
                                         ),
                                         Switch(
                                           value: isActive,
+                                          activeTrackColor: AppColors.primary,
                                           onChanged: (_) =>
                                               _toggleRuleStatus(rule),
                                         ),
@@ -462,16 +491,26 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
                                           style: const TextStyle(fontSize: 13),
                                         ),
                                       ),
-                                    const SizedBox(height: 8),
-                                    Chip(
-                                      label: Text(
-                                        '${rule.actionKind}: ${rule.actionPayload}',
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 5,
                                       ),
-                                      backgroundColor: AppColors.primary
-                                          .withValues(alpha: 0.1),
-                                      labelStyle: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.primary,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(AppRadius.full),
+                                        border: Border.all(
+                                          color: AppColors.primary.withValues(alpha: 0.2),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '${rule.actionKind}: ${rule.actionPayload}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -487,6 +526,8 @@ class _AutomationRulesScreenState extends State<AutomationRulesScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         onPressed: _showCreateRuleDialog,
         icon: const Icon(Icons.add),
         label: Text(strings('create_rule')),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mujeeb24_app/core/widgets/common_ui_widgets.dart';
 import 'package:mujeeb24_app/app/theme/app_theme.dart';
 import 'package:mujeeb24_app/core/models/subscription_models.dart';
 import 'package:mujeeb24_app/features/subscription/presentation/manual_payment_dialog.dart';
@@ -114,11 +115,10 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
         },
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(widget.provider.error ?? 'تعذر تقديم طلب الاشتراك'),
-          backgroundColor: AppColors.statusError,
-        ),
+      showAppAlertDialog(
+        context,
+        message: widget.provider.error ?? 'تعذر تقديم طلب الاشتراك',
+        isError: true,
       );
     }
   }
@@ -159,9 +159,13 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     final currentCode = currentSub?.planCode?.toLowerCase();
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('باقات واشتراكات مجيب'),
         centerTitle: true,
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -178,7 +182,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.2),
                 ),
@@ -225,7 +229,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.statusErrorContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Row(
                   children: [
@@ -265,8 +269,8 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCanvas,
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: plan.isPopular
               ? AppColors.primary
@@ -275,15 +279,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
               : AppColors.borderHairline,
           width: plan.isPopular || isCurrent ? 2.0 : 1.0,
         ),
-        boxShadow: plan.isPopular
-            ? [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
+        boxShadow: plan.isPopular ? AppShadows.elevated : AppShadows.subtle,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -151,7 +151,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderHairline),
+                  border: Border.all(color: AppColors.borderLightBlue),
                 ),
                 child: SelectableText(
                   const JsonEncoder.withIndent('  ').convert(event.metadata),
@@ -214,8 +214,13 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
       animation: widget.provider,
       builder: (context, _) {
         return Scaffold(
+          backgroundColor: AppColors.background,
           appBar: AppBar(
-            title: Text(AppStrings.get('audit_logs_title', context)),
+            backgroundColor: AppColors.surfaceCanvas,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            title: Text(AppStrings.get('audit_logs_title', context),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             actions: [
               IconButton(
                 key: const Key('btn_refresh_audit'),
@@ -415,17 +420,18 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, idx) {
         final ev = events[idx];
-        return Card(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: AppColors.borderHairline),
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCanvas,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.borderLightBlue),
+            boxShadow: AppShadows.card,
           ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             onTap: () => _showEventDetailSheet(ev),
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

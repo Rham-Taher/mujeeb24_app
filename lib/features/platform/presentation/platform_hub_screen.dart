@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../../core/widgets/common_ui_widgets.dart';
 
 import 'package:flutter/material.dart';
 
@@ -27,11 +28,20 @@ class PlatformHubScreen extends StatefulWidget {
 class _PlatformHubScreenState extends State<PlatformHubScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _businessSearchController = TextEditingController();
+  String _businessSearchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
+    _businessSearchController.addListener(() {
+      if (mounted) {
+        setState(() {
+          _businessSearchQuery = _businessSearchController.text.trim().toLowerCase();
+        });
+      }
+    });
     if (widget.authProvider.isPlatformAdmin) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _loadCurrentTabData(0);
@@ -46,6 +56,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
 
   @override
   void dispose() {
+    _businessSearchController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -96,7 +107,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
         return AppColors.statusWarning;
       case 'archived':
       default:
-        return AppColors.textMuted;
+        return AppColors.textSecondary;
     }
   }
 
@@ -111,59 +122,71 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
       animation: widget.provider,
       builder: (context, _) {
         return Scaffold(
+          backgroundColor: AppColors.background,
           appBar: AppBar(
-            title: Text(AppStrings.get('platform_title', context)),
+            title: Text(
+              AppStrings.get('platform_title', context),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: AppColors.headingNavy,
+              ),
+            ),
+            backgroundColor: AppColors.surfaceCanvas,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
             leading: IconButton(
               key: const Key('btn_platform_back'),
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Icons.arrow_back_rounded),
               onPressed: widget.onBackToWorkspace,
             ),
             actions: [
               IconButton(
                 key: const Key('btn_refresh_platform'),
-                icon: const Icon(Icons.refresh),
+                icon: const Icon(Icons.refresh_rounded),
                 onPressed: () => _loadCurrentTabData(_tabController.index),
               ),
             ],
             bottom: TabBar(
               controller: _tabController,
               isScrollable: true,
+              indicatorColor: AppColors.primary,
+              indicatorWeight: 3,
+              labelColor: AppColors.primary,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              unselectedLabelColor: AppColors.textSecondary,
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
               tabs: [
                 Tab(
                   key: const Key('tab_plat_businesses'),
                   text: AppStrings.get('tab_platform_businesses', context),
-                  icon: const Icon(Icons.storefront_outlined),
                 ),
                 Tab(
                   key: const Key('tab_plat_channels'),
                   text: AppStrings.get('tab_platform_channels', context),
-                  icon: const Icon(Icons.hub_outlined),
                 ),
                 Tab(
                   key: const Key('tab_plat_ai'),
                   text: AppStrings.get('tab_platform_ai', context),
-                  icon: const Icon(Icons.psychology_outlined),
                 ),
                 Tab(
                   key: const Key('tab_plat_plans'),
                   text: AppStrings.get('tab_platform_plans', context),
-                  icon: const Icon(Icons.card_membership_outlined),
                 ),
                 Tab(
                   key: const Key('tab_plat_support'),
                   text: AppStrings.get('tab_platform_support', context),
-                  icon: const Icon(Icons.support_agent_outlined),
                 ),
                 Tab(
                   key: const Key('tab_plat_audit'),
                   text: AppStrings.get('tab_platform_audit', context),
-                  icon: const Icon(Icons.security_outlined),
                 ),
               ],
             ),
           ),
-          body: TabBarView(
-            controller: _tabController,
+          body: SafeArea(
+            child: TabBarView(
+              controller: _tabController,
             children: [
               _buildBusinessesTab(),
               _buildChannelsTab(),
@@ -173,6 +196,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
               _buildAuditTab(),
             ],
           ),
+        ),
         );
       },
     );
@@ -180,8 +204,15 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
 
   Widget _buildAccessDenied() {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(AppStrings.get('access_denied_platform_title', context)),
+        title: Text(
+          AppStrings.get('access_denied_platform_title', context),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.headingNavy),
+        ),
+        backgroundColor: AppColors.surfaceCanvas,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       body: Center(
         child: Padding(
@@ -189,18 +220,25 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.gpp_bad_rounded,
-                size: 64,
-                color: AppColors.statusError,
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.statusError.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.gpp_bad_rounded,
+                  size: 64,
+                  color: AppColors.statusError,
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Text(
                 AppStrings.get('access_denied_platform_title', context),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.onSurface,
+                  color: AppColors.headingNavy,
                 ),
               ),
               const SizedBox(height: 8),
@@ -209,13 +247,20 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
-                  color: AppColors.textMuted,
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 key: const Key('btn_back_to_workspace_denied'),
-                icon: const Icon(Icons.arrow_back),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                  ),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded),
                 label: Text(AppStrings.get('back_to_workspace', context)),
                 onPressed: widget.onBackToWorkspace,
               ),
@@ -235,17 +280,70 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
       return const Center(child: CircularProgressIndicator());
     }
 
-    final businesses = widget.provider.businesses;
+    final rawBusinesses = widget.provider.businesses;
+    final businesses = _businessSearchQuery.isEmpty
+        ? rawBusinesses
+        : rawBusinesses.where((b) {
+            return b.name.toLowerCase().contains(_businessSearchQuery) ||
+                b.slug.toLowerCase().contains(_businessSearchQuery) ||
+                (b.ownerIdentitySummary?.toLowerCase().contains(_businessSearchQuery) ?? false) ||
+                (b.subscriptionSummary?.toLowerCase().contains(_businessSearchQuery) ?? false);
+          }).toList();
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('fab_create_business'),
-        icon: const Icon(Icons.add_business),
-        label: Text(AppStrings.get('create_business', context)),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
+        icon: const Icon(Icons.add_business_rounded),
+        label: Text(
+          AppStrings.get('create_business', context),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         onPressed: _showCreateBusinessDialog,
       ),
       body: Column(
         children: [
+          // Search Input Field
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: TextField(
+              controller: _businessSearchController,
+              decoration: InputDecoration(
+                hintText: 'البحث عن متجر بالاسم أو المعرف أو المالك...',
+                hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+                suffixIcon: _businessSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () {
+                          _businessSearchController.clear();
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppColors.surfaceCanvas,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  borderSide: const BorderSide(color: AppColors.borderLightBlue),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  borderSide: const BorderSide(color: AppColors.borderLightBlue),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+              ),
+            ),
+          ),
+
+          // Filter Chips Row
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -255,6 +353,12 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                   key: const Key('chip_biz_all'),
                   label: Text(AppStrings.get('all_statuses', context)),
                   selected: widget.provider.businessStatusFilter == 'all',
+                  selectedColor: AppColors.primary.withValues(alpha: 0.12),
+                  backgroundColor: AppColors.surfaceCanvas,
+                  side: const BorderSide(color: AppColors.borderLightBlue),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
                   onSelected: (_) {
                     widget.provider.setBusinessFilter('all');
                     widget.provider.fetchBusinesses(refresh: true);
@@ -265,6 +369,12 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                   key: const Key('chip_biz_active'),
                   label: const Text('Active'),
                   selected: widget.provider.businessStatusFilter == 'active',
+                  selectedColor: AppColors.primary.withValues(alpha: 0.12),
+                  backgroundColor: AppColors.surfaceCanvas,
+                  side: const BorderSide(color: AppColors.borderLightBlue),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
                   onSelected: (_) {
                     widget.provider.setBusinessFilter('active');
                     widget.provider.fetchBusinesses(refresh: true);
@@ -276,6 +386,12 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                   label: const Text('Pending Setup'),
                   selected:
                       widget.provider.businessStatusFilter == 'pending_setup',
+                  selectedColor: AppColors.primary.withValues(alpha: 0.12),
+                  backgroundColor: AppColors.surfaceCanvas,
+                  side: const BorderSide(color: AppColors.borderLightBlue),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
                   onSelected: (_) {
                     widget.provider.setBusinessFilter('pending_setup');
                     widget.provider.fetchBusinesses(refresh: true);
@@ -286,6 +402,12 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                   key: const Key('chip_biz_suspended'),
                   label: const Text('Suspended'),
                   selected: widget.provider.businessStatusFilter == 'suspended',
+                  selectedColor: AppColors.primary.withValues(alpha: 0.12),
+                  backgroundColor: AppColors.surfaceCanvas,
+                  side: const BorderSide(color: AppColors.borderLightBlue),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
                   onSelected: (_) {
                     widget.provider.setBusinessFilter('suspended');
                     widget.provider.fetchBusinesses(refresh: true);
@@ -294,21 +416,50 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
               ],
             ),
           ),
-          const Divider(height: 1),
+          const Divider(height: 1, color: AppColors.borderLightBlue),
           Expanded(
             child: businesses.isEmpty
-                ? const Center(child: Text('No businesses found'))
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.storefront_rounded,
+                            size: 48,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No businesses found',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
                     itemCount: businesses.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, idx) {
                       final b = businesses[idx];
-                      return Card(
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: AppColors.borderHairline),
+                      final statusColor = _getStatusColor(b.platformStatus);
+
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceCanvas,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(color: AppColors.borderLightBlue),
+                          boxShadow: AppShadows.card,
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
@@ -316,13 +467,19 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  CircleAvatar(
-                                    backgroundColor: AppColors.primary
-                                        .withValues(alpha: 0.12),
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(AppRadius.md),
+                                    ),
                                     child: const Icon(
-                                      Icons.storefront,
+                                      Icons.storefront_rounded,
                                       color: AppColors.primary,
+                                      size: 22,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -335,42 +492,54 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                                           b.name,
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 15,
+                                            fontSize: 16,
+                                            color: AppColors.headingNavy,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
+                                        const SizedBox(height: 2),
                                         Text(
                                           'Slug: ${b.slug}',
                                           style: const TextStyle(
                                             fontSize: 12,
-                                            color: AppColors.textMuted,
+                                            color: AppColors.textSecondary,
+                                            fontFamily: 'monospace',
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
+                                      horizontal: 9,
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(b.platformStatus)
-                                          .withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(6),
+                                      color: statusColor.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(AppRadius.full),
+                                      border: Border.all(
+                                        color: statusColor.withValues(alpha: 0.25),
+                                      ),
                                     ),
                                     child: Text(
                                       b.platformStatus,
                                       style: TextStyle(
-                                        color: _getStatusColor(
-                                          b.platformStatus,
-                                        ),
+                                        color: statusColor,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 12,
+                                        fontSize: 11,
                                       ),
                                     ),
                                   ),
                                   PopupMenuButton<String>(
                                     key: Key('menu_biz_${b.id}'),
+                                    icon: const Icon(
+                                      Icons.more_vert_rounded,
+                                      color: AppColors.textSecondary,
+                                    ),
                                     onSelected: (action) =>
                                         _handleBusinessAction(b, action),
                                     itemBuilder: (context) => [
@@ -421,24 +590,60 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                                   ),
                                 ],
                               ),
-                              if (b.ownerIdentitySummary != null) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Owner: ${b.ownerIdentitySummary}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textMuted,
-                                  ),
+                              if (b.ownerIdentitySummary != null || b.subscriptionSummary != null) ...[
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  child: Divider(height: 1, color: AppColors.borderLightBlue),
                                 ),
+                                if (b.ownerIdentitySummary != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.person_outline_rounded,
+                                          size: 14,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            'Owner: ${b.ownerIdentitySummary}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (b.subscriptionSummary != null)
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.card_membership_rounded,
+                                        size: 14,
+                                        color: AppColors.primary,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          'Plan: ${b.subscriptionSummary}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                               ],
-                              if (b.subscriptionSummary != null)
-                                Text(
-                                  'Plan: ${b.subscriptionSummary}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
                             ],
                           ),
                         ),
@@ -498,11 +703,9 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
               );
 
               if (ok && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(widget.provider.actionSuccessMessage ?? 'OK'),
-                    backgroundColor: AppColors.statusSuccess,
-                  ),
+                showAppAlertDialog(
+                  context,
+                  message: widget.provider.actionSuccessMessage ?? 'OK',
                 );
               }
             },
@@ -592,11 +795,12 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, idx) {
         final ch = channels[idx];
-        return Card(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: AppColors.borderHairline),
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCanvas,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.borderLightBlue),
+            boxShadow: AppShadows.card,
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -626,7 +830,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                             'Business: ${ch.businessId}',
                             style: const TextStyle(
                               fontSize: 11,
-                              color: AppColors.textMuted,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -757,7 +961,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                     AppStrings.get('ai_kill_switch_desc', context),
                     style: const TextStyle(
                       fontSize: 13,
-                      color: AppColors.textMuted,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -793,7 +997,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: AppColors.borderHairline),
+              side: BorderSide(color: AppColors.borderLightBlue),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -863,7 +1067,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
             Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: AppColors.borderHairline),
+                side: BorderSide(color: AppColors.borderLightBlue),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -915,7 +1119,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 4),
         Text(
@@ -1004,11 +1208,12 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, idx) {
                     final p = plans[idx];
-                    return Card(
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: AppColors.borderHairline),
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCanvas,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.borderLightBlue),
+                        boxShadow: AppShadows.card,
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -1061,7 +1266,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                               'Limits: ${p.aiReplyLimit} AI replies, ${p.channelLimit} channels',
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textMuted,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -1104,11 +1309,12 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, idx) {
                     final s = subs[idx];
-                    return Card(
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: AppColors.borderHairline),
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCanvas,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.borderLightBlue),
+                        boxShadow: AppShadows.card,
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -1145,14 +1351,14 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                               'Business ID: ${s.businessId}',
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textMuted,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                             Text(
                               'Period: ${s.periodStart} to ${s.periodEnd}',
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textMuted,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -1312,11 +1518,12 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, idx) {
                     final t = tickets[idx];
-                    return Card(
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: AppColors.borderHairline),
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCanvas,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.borderLightBlue),
+                        boxShadow: AppShadows.card,
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -1353,7 +1560,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
                               'Category: ${t.category} | Priority: ${t.priority}',
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textMuted,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -1416,11 +1623,12 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, idx) {
         final ev = events[idx];
-        return Card(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: AppColors.borderHairline),
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCanvas,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.borderLightBlue),
+            boxShadow: AppShadows.card,
           ),
           child: ExpansionTile(
             title: Text(
@@ -1429,7 +1637,7 @@ class _PlatformHubScreenState extends State<PlatformHubScreen>
             ),
             subtitle: Text(
               '${ev.targetType} [${ev.targetId ?? ""}] • ${ev.occurredAt}',
-              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

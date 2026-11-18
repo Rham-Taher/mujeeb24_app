@@ -135,12 +135,15 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
     String strings(String key) => AppStrings.get(key, context);
 
     return Scaffold(
-      backgroundColor: AppColors.surfaceCanvas,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           isEditing ? strings('edit_customer') : strings('create_customer'),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

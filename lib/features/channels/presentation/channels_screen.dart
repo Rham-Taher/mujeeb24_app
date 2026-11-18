@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/widgets/merchant_editor_dialog.dart';
 import '../../../app/localization/app_localizations.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/widgets/common_ui_widgets.dart';
 import '../../../core/models/channel_automation_models.dart';
 import '../providers/channel_automation_provider.dart';
 import 'ai_decisions_screen.dart';
@@ -41,22 +42,20 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     );
   }
 
-  void _showErrorSnackBar(String message, [String? requestId]) {
-    final text = requestId != null ? '$message ($requestId)' : message;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(text),
-        backgroundColor: AppColors.error,
-      ),
+  void _showErrorDialog(String message, [String? requestId]) {
+    showAppAlertDialog(
+      context,
+      message: message,
+      isError: true,
+      requestId: requestId,
     );
   }
 
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.success,
-      ),
+  void _showSuccessDialog(String message) {
+    showAppAlertDialog(
+      context,
+      message: message,
+      isError: false,
     );
   }
 
@@ -65,15 +64,15 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
   Future<void> _openChannelAuthorization(String? rawUrl) async {
     final uri = rawUrl == null ? null : Uri.tryParse(rawUrl.trim());
     if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
-      _showErrorSnackBar('رابط الربط غير صالح. أعد محاولة الربط.');
+      _showErrorDialog('رابط الربط غير صالح. أعد محاولة الربط.');
       return;
     }
     try {
       final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!mounted) return;
-      if (!opened) _showErrorSnackBar('تعذر فتح الرابط. انسخه وافتحه من المتصفح.');
+      if (!opened) _showErrorDialog('تعذر فتح الرابط. انسخه وافتحه من المتصفح.');
     } catch (_) {
-      if (mounted) _showErrorSnackBar('تعذر فتح الرابط. يمكنك نسخه يدويًا.');
+      if (mounted) _showErrorDialog('تعذر فتح الرابط. يمكنك نسخه يدويًا.');
     }
   }
 
@@ -188,7 +187,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                       if (provisioning != null) {
                         _showProvisioningResultDialog(provisioning);
                       } else if (widget.channelProvider.actionError != null) {
-                        _showErrorSnackBar(
+                        _showErrorDialog(
                           widget.channelProvider.actionError!,
                           widget.channelProvider.lastRequestId,
                         );
@@ -245,7 +244,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                       onPressed: () async {
                         await Clipboard.setData(ClipboardData(
                           text: provisioning.authorizationUrl!));
-                        if (mounted) _showSuccessSnackBar('تم نسخ رابط الربط');
+                        if (mounted) _showSuccessDialog('تم نسخ رابط الربط');
                       },
                       icon: const Icon(Icons.copy_rounded),
                       label: const Text('نسخ الرابط'),
@@ -317,9 +316,9 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                   );
                   if (!mounted) return;
                   if (res != null) {
-                    _showSuccessSnackBar(strings('reconnect_success'));
+                    _showSuccessDialog(strings('reconnect_success'));
                   } else if (widget.channelProvider.actionError != null) {
-                    _showErrorSnackBar(
+                    _showErrorDialog(
                       widget.channelProvider.actionError!,
                       widget.channelProvider.lastRequestId,
                     );
@@ -386,9 +385,9 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                   );
                   if (!mounted) return;
                   if (res != null) {
-                    _showSuccessSnackBar(strings('disconnect_success'));
+                    _showSuccessDialog(strings('disconnect_success'));
                   } else if (widget.channelProvider.actionError != null) {
-                    _showErrorSnackBar(
+                    _showErrorDialog(
                       widget.channelProvider.actionError!,
                       widget.channelProvider.lastRequestId,
                     );
@@ -418,7 +417,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     if (!mounted) return;
 
     if (preview == null) {
-      _showErrorSnackBar(
+      _showErrorDialog(
         widget.channelProvider.actionError ?? strings('request_failed'),
         widget.channelProvider.lastRequestId,
       );
@@ -509,10 +508,10 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                   );
                   if (!mounted) return;
                   if (purged != null) {
-                    _showSuccessSnackBar(strings('purge_success'));
+                    _showSuccessDialog(strings('purge_success'));
                     _loadData();
                   } else if (widget.channelProvider.actionError != null) {
-                    _showErrorSnackBar(
+                    _showErrorDialog(
                       widget.channelProvider.actionError!,
                       widget.channelProvider.lastRequestId,
                     );
@@ -636,9 +635,10 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
           ),
         ],
       ),
-      body: AnimatedBuilder(
-        animation: widget.channelProvider,
-        builder: (context, _) {
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: widget.channelProvider,
+          builder: (context, _) {
           final provider = widget.channelProvider;
           if (provider.isLoadingConnections && provider.connections.isEmpty) {
             return const Center(child: CircularProgressIndicator());
@@ -831,7 +831,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                                             children: [
                                               Text(
                                                 conn.displayName?.trim().isNotEmpty == true
-                                                    ? conn.displayName! : _channelName(conn.channel),
+                                                    ? conn.displayName! : (conn.externalAccountReference?.trim().isNotEmpty == true ? conn.externalAccountReference! : _channelName(conn.channel)),
                                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                               ),
                                               Text(
@@ -898,6 +898,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
             ],
           );
         },
+      ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showConnectDialog,

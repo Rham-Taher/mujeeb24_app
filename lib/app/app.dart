@@ -1,3 +1,5 @@
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mujeeb24_app/features/auth/presentation/splash_screen.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -180,30 +182,28 @@ class _MujeebAppState extends State<MujeebApp> {
   @override
   Widget build(BuildContext context) {
     if (_restoringSavedSession) {
-      return MaterialApp(
+      return const MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          body: Center(
-            child: Semantics(
-              label: 'جاري التحقق من جلسة الدخول',
-              child: const CircularProgressIndicator(),
-            ),
-          ),
-        ),
+        home: SplashScreen(),
       );
     }
-    return MaterialApp(
-      title: 'Mujeeb 24',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      locale: _localeProvider.locale,
-      supportedLocales: const [Locale('ar'), Locale('en')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      home: _buildCurrentScreen(),
+    return ScreenUtilInit(
+      designSize: const Size(390, 844),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) => MaterialApp(
+        title: 'Mujeeb 24',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        locale: _localeProvider.locale,
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: _buildCurrentScreen(),
+      ),
     );
   }
 

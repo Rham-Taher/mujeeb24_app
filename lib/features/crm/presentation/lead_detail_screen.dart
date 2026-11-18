@@ -110,7 +110,7 @@ class _LeadDetailScreenState extends State<LeadDetailScreen>
     final lead = provider.selectedLead ?? widget.initialLead;
 
     return Scaffold(
-      backgroundColor: AppColors.surfaceCanvas,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           lead != null
@@ -118,6 +118,9 @@ class _LeadDetailScreenState extends State<LeadDetailScreen>
               : strings('lead_details'),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         actions: [
           if (lead != null) ...[
             IconButton(
